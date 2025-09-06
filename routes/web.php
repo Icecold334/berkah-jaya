@@ -1,12 +1,16 @@
 <?php
 
-use App\Livewire\Settings\Appearance;
-use App\Livewire\Settings\Password;
+use App\Models\TransaksiKas;
 use App\Livewire\Settings\Profile;
+use App\Livewire\Settings\Password;
+use App\Livewire\Settings\Appearance;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
-    return view('test');
+    $saldo = TransaksiKas::selectRaw("
+    SUM(CASE WHEN tipe = 'masuk' THEN jumlah ELSE -jumlah END) as saldo
+")->value('saldo');
+    return view('test', compact('saldo'));
 })->name('home');
 
 Route::view('dashboard', 'dashboard')

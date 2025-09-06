@@ -9,13 +9,14 @@
   <!-- Flowbite -->
   {{--
   <link href="https://cdnjs.cloudflare.com/ajax/libs/flowbite/2.3.0/flowbite.min.css" rel="stylesheet" /> --}}
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/css/all.min.css">
   @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
 
 <body class="bg-gradient-to-br from-primary-100 to-primary-200 min-h-screen">
 
   <!-- NAVBAR -->
-  <nav class="fixed top-0 z-50 w-full bg-white border-b border-gray-200">
+  <nav class="fixed top-0 z-50 w-full bg-gradient-to-r from-primary-600 to-primary-500 shadow-2xl">
     <div class="px-3 py-3 lg:px-5 lg:pl-3">
       <div class="flex items-center justify-between">
         <!-- Left Section -->
@@ -32,7 +33,7 @@
           </button>
           <!-- Logo -->
           <a href="#" class="flex ml-2 md:mr-24">
-            <span class="self-center text-xl font-semibold sm:text-2xl whitespace-nowrap">My Dashboard</span>
+            <span class="self-center text-xl text-white font-semibold sm:text-2xl whitespace-nowrap">My Dashboard</span>
           </a>
         </div>
 
@@ -128,33 +129,15 @@
 
   <!-- SIDEBAR -->
   <aside id="sidebar"
-    class="fixed top-0 left-0 z-40 w-64 h-screen pt-20 transition-transform -translate-x-full bg-white border-r border-gray-200 sm:translate-x-0"
+    class="fixed top-0 left-0 z-40 w-64 h-screen pt-20 transition-transform -translate-x-full bg-gradient-to-b from-primary-600 to-primary-500 border-r border-gray-200 sm:translate-x-0"
     aria-label="Sidebar">
-    <div class="h-full px-3 pb-4 overflow-y-auto bg-white">
+    <div class="h-full px-3 pb-4 overflow-y-auto">
       <ul class="space-y-2 font-medium">
         <li>
-          <a href="#" class="flex items-center p-2 text-gray-900 rounded-lg hover:bg-gray-100">
-            <svg class="w-6 h-6 text-gray-500" fill="currentColor" viewBox="0 0 20 20">
-              <path d="M10 20a8 8 0 100-16 8 8 0 000 16zm1-11H9v4h2V9z"></path>
-            </svg>
+          <a href="#"
+            class="flex items-center p-2 transition duration-200 text-white hover:text-primary-700 rounded-lg hover:bg-gray-100">
+            <i class="fa-solid fa-icons"></i>
             <span class="ml-3">Dashboard</span>
-          </a>
-        </li>
-        <li>
-          <a href="#" class="flex items-center p-2 text-gray-900 rounded-lg hover:bg-gray-100">
-            <svg class="w-6 h-6 text-gray-500" fill="currentColor" viewBox="0 0 20 20">
-              <path d="M2 5a2 2 0 012-2h2.5a1 1 0 010 2H4v10h2.5a1 1 0 110 2H4a2 2 0 01-2-2V5z"></path>
-              <path d="M16 3a2 2 0 012 2v10a2 2 0 01-2 2h-2.5a1 1 0 110-2H16V5h-2.5a1 1 0 110-2H16z"></path>
-            </svg>
-            <span class="ml-3">Laporan</span>
-          </a>
-        </li>
-        <li>
-          <a href="#" class="flex items-center p-2 text-gray-900 rounded-lg hover:bg-gray-100">
-            <svg class="w-6 h-6 text-gray-500" fill="currentColor" viewBox="0 0 20 20">
-              <path d="M4 4h12v12H4V4z"></path>
-            </svg>
-            <span class="ml-3">Pengaturan</span>
           </a>
         </li>
       </ul>
