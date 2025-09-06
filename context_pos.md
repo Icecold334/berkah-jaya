@@ -1,7 +1,8 @@
 # Context Prompt Aplikasi POS (Update Progress)
 
 Aku sedang mengerjakan project aplikasi **Point of Sale (POS)** dengan pendekatan **iteratif**: kebutuhan fitur bisa bertambah seiring waktu.  
-Awalnya project ini dibuat dengan bahasa lain, tapi sekarang direbuild menggunakan **TALL stack** (TailwindCSS, AlpineJS, Laravel, Livewire).
+Awalnya project ini dibuat dengan bahasa lain, tapi sekarang direbuild menggunakan **TALL stack** (TailwindCSS, AlpineJS, Laravel, Livewire) dengan **Flowbite** sebagai base UI.  
+Template warna yang sudah dideklarasikan: **primary, info, danger, secondary, warning, success**.
 
 ---
 

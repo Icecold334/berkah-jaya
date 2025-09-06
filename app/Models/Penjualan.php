@@ -36,6 +36,8 @@ class Penjualan extends Model
         return $this->morphMany(PergerakanStok::class, 'sumber');
     }
 
+
+
     /** ⚙️ Helper Method **/
 
     // Hitung ulang total dari item
