@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
+
 class AkunKas extends Model
 {
     protected $table = 'akun_kas';
