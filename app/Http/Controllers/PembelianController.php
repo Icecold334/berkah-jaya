@@ -11,9 +11,6 @@ class PembelianController extends Controller
 {
     public function index()
     {
-        return view('pembelian.index', [
-            'suppliers' => Supplier::all(),
-            'produks'   => Produk::all(),
-        ]);
+        return view('pembelian.index');
     }
 }

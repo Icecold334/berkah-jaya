@@ -145,12 +145,20 @@
                     </a>
                 </li>
                 <li>
-                    <a href="/pembelian"
+                    <a href="{{ route('penjualan.index') }}"
                         class="flex items-center p-2 transition duration-200 text-white hover:text-primary-700 rounded-lg hover:bg-gray-100">
-                        <i class="fa-solid fa-cart-arrow-down"></i>
+                        <i class="fa-solid fa-cart-shopping"></i>
+                        <span class="ml-3">Penjualan</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="{{ route('pembelian.index') }}"
+                        class="flex items-center p-2 transition duration-200 text-white hover:text-primary-700 rounded-lg hover:bg-gray-100">
+                        <i class="fa-solid fa-dolly"></i>
                         <span class="ml-3">Pembelian</span>
                     </a>
                 </li>
+
             </ul>
         </div>
     </aside>
