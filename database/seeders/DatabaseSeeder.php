@@ -146,6 +146,7 @@ class DatabaseSeeder extends Seeder
         // === 7. Contoh Penjualan ===
         $penjualan = Penjualan::create([
             'customer_id' => $customer1->id,
+            'no_struk' => fake()->numerify('NNN-###-###-###'),
             'tanggal' => Carbon::now()->subDays(1),
             'total' => 0 // akan dihitung ulang
         ]);

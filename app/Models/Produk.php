@@ -48,7 +48,8 @@ class Produk extends Model
     // Harga beli tertinggi dari relasi supplier
     public function getHargaBeliTertinggiAttribute()
     {
-        return $this->suppliers()->max('produk_supplier.harga_beli');
+        $harga = $this->suppliers()->max('produk_suppliers.harga_beli');
+        return $harga;
     }
 
     // Harga jual default (aturan: harga beli tertinggi + pajak jika ada)
@@ -56,9 +57,8 @@ class Produk extends Model
     {
         $harga = $this->harga_beli_tertinggi;
         $kenaPajak = $this->suppliers()
-            ->where('produk_supplier.harga_beli', $harga)
-            ->value('produk_supplier.kena_pajak');
-
+            ->where('produk_suppliers.harga_beli', $harga)
+            ->value('produk_suppliers.kena_pajak');
         if ($harga && $kenaPajak) {
             $harga += $harga * 0.02; // tambah 2%
         }

@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Relations\MorphOne;
 class Penjualan extends Model
 {
     protected $table = 'penjualans';
-    protected $fillable = ['customer_id', 'tanggal', 'total'];
+    protected $fillable = ['customer_id', 'tanggal', 'total', 'no_struk', 'kena_pajak'];
 
     /** 🔗 Relasi **/
 

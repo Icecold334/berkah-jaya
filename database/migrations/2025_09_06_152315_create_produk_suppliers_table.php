@@ -15,7 +15,7 @@ return new class extends Migration
             $table->id();
             $table->foreignId('produk_id')->constrained('produks');
             $table->foreignId('supplier_id')->constrained('suppliers');
-            $table->decimal('harga_beli', 15, 2);
+            $table->float('harga_beli');
             $table->boolean('kena_pajak')->default(false);
             $table->date('tanggal_pembelian_terakhir')->nullable();
             $table->timestamps();

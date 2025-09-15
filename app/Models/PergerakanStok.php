@@ -13,6 +13,7 @@ class PergerakanStok extends Model
         'tipe',
         'qty',
         'sumber_type',
+        'produk_supplier_id',
         'sumber_id',
         'keterangan'
     ];

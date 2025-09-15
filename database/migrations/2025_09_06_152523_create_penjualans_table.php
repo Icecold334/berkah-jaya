@@ -14,6 +14,8 @@ return new class extends Migration
         Schema::create('penjualans', function (Blueprint $table) {
             $table->id();
             $table->foreignId('customer_id')->nullable()->constrained('customers');
+            $table->string('no_struk')->unique();
+            $table->boolean('kena_pajak')->default(false);
             $table->date('tanggal');
             $table->decimal('total', 15, 2);
             $table->timestamps();

@@ -14,6 +14,10 @@ return new class extends Migration
         Schema::create('pergerakan_stoks', function (Blueprint $table) {
             $table->id();
             $table->foreignId('produk_id')->constrained('produks');
+            $table->unsignedBigInteger('produk_supplier_id')->nullable();
+            $table->foreign('produk_supplier_id')
+                ->references('id')->on('produk_suppliers')
+                ->nullOnDelete();
             $table->date('tanggal');
             $table->enum('tipe', ['masuk', 'keluar', 'penyesuaian']);
             $table->integer('qty');

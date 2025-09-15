@@ -27,13 +27,13 @@
 3. **produk_suppliers** (id, produk_id, supplier_id, harga_beli, kena_pajak, tanggal_pembelian_terakhir, timestamps)
 4. **pembelians** (id, supplier_id, tanggal, total, keterangan, timestamps)
 5. **item_pembelians** (id, pembelian_id, produk_id, harga_beli, qty, kena_pajak, timestamps)
-6. **penjualans** (id, customer_id, tanggal, total, timestamps)
-7. **item_penjualans** (id, penjualan_id, produk_id, harga_jual, qty, subtotal, timestamps)
+6. **penjualans** (id, **no_struk**, customer_id, tanggal, total, **kena_pajak**, timestamps)
+7. **item_penjualans** (id, penjualan_id, produk_id, **produk_supplier_id**, harga_jual, qty, subtotal, **kena_pajak**, timestamps)
 8. **customers** (id, nama, telepon, alamat, timestamps) – opsional
 9. **akun_kas** (id, nama, tipe, saldo_awal, timestamps)
 10. **kategori_kas** (id, tipe, nama, timestamps)
 11. **transaksi_kas** (id, akun_kas_id, tanggal, tipe, kategori_id, jumlah, keterangan, sumber_type, sumber_id, timestamps)
-12. **pergerakan_stoks** (id, produk_id, tanggal, tipe, qty, sumber_type, sumber_id, keterangan, timestamps)
+12. **pergerakan_stoks** (id, produk_id, **produk_supplier_id**, tanggal, tipe, qty, **kena_pajak**, sumber_type, sumber_id, keterangan, timestamps)
 13. **audit_logs** (id, tabel, record_id, aksi, data_lama, data_baru, user_id, timestamps)
 
 ---
@@ -60,31 +60,48 @@
 
 ### 4. **Pembelian (Livewire Form)**
 
--   **Supplier sebagai gatekeeper** → sebelum pilih supplier, semua input row & tombol disable (`cursor-not-allowed`, `opacity-50`).
--   **Row Barang**:
-    -   Input manual `nama`, `qty`, `harga_beli`.
-    -   Nama barang otomatis `firstOrCreate` di DB dengan slug.
-    -   Harga input **diformat rupiah** realtime dengan JS helper `formatRupiah()` (tidak ada leading zero, kosong kalau belum diisi).
--   **Toggle Pajak**:
-    -   Tombol toggle outline/filled.
-    -   Label berubah **Tanpa Pajak ↔ Pakai Pajak**.
-    -   Mengupdate semua row `kena_pajak` sesuai mode.
--   **Row Management**:
-    -   Tombol `+` hanya muncul di row terakhir **dan** kalau semua field valid.
-    -   Tombol `hapus` muncul di semua row kecuali kalau hanya 1 row.
--   **Tombol Simpan**:
-    -   Muncul hanya kalau ada ≥ 1 row **dan** semua field valid.
-    -   Setelah simpan → form reset (supplier kosong, 1 row baru).
-    -   SweetAlert Toast muncul di kanan atas ("Pembelian berhasil disimpan!").
+-   Supplier sebagai gatekeeper sebelum input barang.
+-   Row barang dengan input manual nama, qty, harga (format rupiah realtime).
+-   Toggle pajak per row, bisa bulk update.
+-   Manajemen row (tambah/hapus).
+-   Validasi field sebelum simpan.
+-   Transaksi pembelian → otomatis membuat Pembelian, Item, PergerakanStok, TransaksiKas.
+-   Toast sukses setelah simpan.
 
-### 5. **Backend Logic (Form.php)**
+### 5. **Penjualan (Livewire Form)**
 
--   Normalisasi `harga_beli` sebelum validasi (hapus Rp, titik, koma).
--   Validasi field supplier, tanggal, items.
--   Transaksi pembelian:
-    -   Buat record `Pembelian`.
-    -   Cek/buat produk (`Produk::firstOrCreate`).
-    -   Buat `ItemPembelian`.
-    -   Catat `PergerakanStok`.
-    -   Buat `TransaksiKas`.
--   Setelah simpan → reset form + dispatch event `toast`.
+-   Input produk via search (kode/nama).
+-   Produk dipilih dari stok FIFO (`pergerakan_stoks`).
+-   Cart bisa edit qty & harga jual (format rupiah realtime).
+-   Validasi stok tidak boleh minus.
+-   **Logic Baru:**
+    -   Saat simpan, stok diambil FIFO dari supplier.
+    -   Hasil penjualan **dikelompokkan berdasarkan status pajak**:
+        -   Jika barang kena pajak → 1 invoice (`penjualans`) dengan flag `kena_pajak=true`.
+        -   Jika barang non-pajak → 1 invoice (`penjualans`) dengan flag `kena_pajak=false`.
+        -   Jadi 1 transaksi customer bisa pecah menjadi **≥ 1 invoice**.
+    -   Tiap invoice dapat nomor struk auto-generate (`INVYYYYMMDDNNN`).
+    -   Item Penjualan (`item_penjualans`) simpan detail produk + asal supplier (`produk_supplier_id`) + flag pajak.
+    -   Stok keluar dicatat di `pergerakan_stoks` dengan supplier & flag pajak.
+    -   Transaksi kas masuk otomatis tercatat per invoice.
+
+---
+
+## 📊 Contoh Kasus Penjualan
+
+### Stok
+
+-   A (Supp A pajak) = 20, (Supp B non-pajak) = 50
+-   B (Supp A pajak) = 100, (Supp C non-pajak) = 20
+-   C (Supp C non-pajak) = 60
+
+### Pesanan
+
+-   A = 60, B = 50, C = 30
+
+### Hasil
+
+-   **Penjualan #1 (pajak)** → A=20 (Supp A), B=50 (Supp A)
+-   **Penjualan #2 (non-pajak)** → A=40 (Supp B), C=30 (Supp C)
+
+Total invoice: **2**

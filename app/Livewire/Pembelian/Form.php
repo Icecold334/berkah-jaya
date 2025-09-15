@@ -7,11 +7,12 @@ use App\Models\Produk;
 use Livewire\Component;
 use App\Models\Supplier;
 use App\Models\Pembelian;
+use Illuminate\Support\Str;
 use App\Models\TransaksiKas;
 use App\Models\ItemPembelian;
 use App\Models\PergerakanStok;
+use App\Models\ProdukSupplier;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Str;
 
 class Form extends Component
 {
@@ -64,12 +65,11 @@ class Form extends Component
 
         $this->validate([
             'supplier_id' => 'required|exists:suppliers,id',
-            'tanggal' => 'required|date',
-            'items.*.nama' => 'required|string|min:2',
-            'items.*.qty' => 'required|numeric|min:1',
-            'items.*.harga_beli' => 'required|numeric|min:0',
+            // 'tanggal' => 'required|date',
+            // 'items.*.nama' => 'required|string|min:2',
+            // 'items.*.qty' => 'required|numeric|min:1',
+            // 'items.*.harga_beli' => 'required|numeric|min:0',
         ]);
-
         DB::transaction(function () {
             $pembelian = Pembelian::create([
                 'supplier_id' => $this->supplier_id,
@@ -83,7 +83,7 @@ class Form extends Component
                     ['slug' => Str::slug($item['nama'])],
                     [
                         'nama' => $item['nama'],
-                        'kode_barang' => fake()->numerify('BJ#####')
+                        'kode_barang' => fake()->unique()->numerify('BJ#####') // tambahkan unique
                     ]
                 );
 
@@ -95,9 +95,23 @@ class Form extends Component
                     'kena_pajak' => $item['kena_pajak'] ?? false,
                 ]);
 
+                // ✅ Update relasi produk–supplier
+                ProdukSupplier::updateOrCreate(
+                    [
+                        'produk_id' => $produk->id,
+                        'supplier_id' => $this->supplier_id,
+                    ],
+                    [
+                        'harga_beli' => $item['harga_beli'],
+                        'kena_pajak' => $item['kena_pajak'] ?? false,
+                        'tanggal_pembelian_terakhir' => $this->tanggal,
+                    ]
+                );
+
                 PergerakanStok::create([
                     'produk_id' => $produk->id,
                     'tanggal' => $this->tanggal,
+                    'produk_supplier_id' => $this->supplier_id,
                     'tipe' => 'masuk',
                     'qty' => $item['qty'],
                     'sumber_type' => Pembelian::class,
@@ -105,6 +119,7 @@ class Form extends Component
                     'keterangan' => 'Pembelian',
                 ]);
             }
+
 
             TransaksiKas::create([
                 'akun_kas_id' => 1, // TODO: pilih akun kas di form

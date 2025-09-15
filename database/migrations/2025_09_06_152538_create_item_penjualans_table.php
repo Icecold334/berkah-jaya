@@ -15,10 +15,15 @@ return new class extends Migration
             $table->id();
             $table->foreignId('penjualan_id')->constrained('penjualans');
             $table->foreignId('produk_id')->constrained('produks');
+            $table->unsignedBigInteger('produk_supplier_id')->nullable();
             $table->decimal('harga_jual', 15, 2);
             $table->integer('qty');
             $table->decimal('subtotal', 15, 2);
             $table->timestamps();
+
+            $table->foreign('produk_supplier_id')
+                ->references('id')->on('produk_suppliers')
+                ->nullOnDelete();
         });
     }
 
