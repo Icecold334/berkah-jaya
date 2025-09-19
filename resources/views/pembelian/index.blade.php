@@ -3,8 +3,6 @@
     @push('scripts')
     <script>
       window.addEventListener('toast', event => {
-        console.log(event);
-        
             Swal.fire({
                 toast: true,
                 position: 'top-end',

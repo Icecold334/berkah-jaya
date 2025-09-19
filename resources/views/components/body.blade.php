@@ -145,6 +145,13 @@
                     </a>
                 </li>
                 <li>
+                    <a href="{{ route('supplier.index') }}"
+                        class="flex items-center p-2 transition duration-200 text-white hover:text-primary-700 rounded-lg hover:bg-gray-100">
+                        <i class="fa-solid fa-id-card"></i>
+                        <span class="ml-3">Supplier</span>
+                    </a>
+                </li>
+                <li>
                     <a href="{{ route('penjualan.index') }}"
                         class="flex items-center p-2 transition duration-200 text-white hover:text-primary-700 rounded-lg hover:bg-gray-100">
                         <i class="fa-solid fa-cart-shopping"></i>
