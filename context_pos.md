@@ -1,4 +1,4 @@
-# 📌 Context Prompt Aplikasi POS (Update Progress Final)
+# 📌 Context Prompt Aplikasi POS (Update Progress Terbaru)
 
 ## 🏗️ Teknologi
 
@@ -25,15 +25,15 @@
 1. **produks** (id, nama, slug, kode_barang, timestamps)
 2. **suppliers** (id, nama, alamat, telepon, npwp, timestamps)
 3. **produk_suppliers** (id, produk_id, supplier_id, harga_beli, kena_pajak, tanggal_pembelian_terakhir, timestamps)
-4. **pembelians** (id, supplier_id, tanggal, total, keterangan, timestamps)
+4. **pembelians** (id, no_faktur, supplier_id, tanggal, total, kena_pajak, keterangan, timestamps)
 5. **item_pembelians** (id, pembelian_id, produk_id, harga_beli, qty, kena_pajak, timestamps)
-6. **penjualans** (id, **no_struk**, customer_id, tanggal, total, **kena_pajak**, timestamps)
-7. **item_penjualans** (id, penjualan_id, produk_id, **produk_supplier_id**, harga_jual, qty, subtotal, **kena_pajak**, timestamps)
+6. **penjualans** (id, no_struk, customer_id, tanggal, total, kena_pajak, timestamps)
+7. **item_penjualans** (id, penjualan_id, produk_id, produk_supplier_id, harga_jual, qty, subtotal, kena_pajak, timestamps)
 8. **customers** (id, nama, telepon, alamat, timestamps) – opsional
 9. **akun_kas** (id, nama, tipe, saldo_awal, timestamps)
 10. **kategori_kas** (id, tipe, nama, timestamps)
 11. **transaksi_kas** (id, akun_kas_id, tanggal, tipe, kategori_id, jumlah, keterangan, sumber_type, sumber_id, timestamps)
-12. **pergerakan_stoks** (id, produk_id, **produk_supplier_id**, tanggal, tipe, qty, **kena_pajak**, sumber_type, sumber_id, keterangan, timestamps)
+12. **pergerakan_stoks** (id, produk_id, produk_supplier_id, tanggal, tipe, qty, kena_pajak, sumber_type, sumber_id, keterangan, timestamps)
 13. **audit_logs** (id, tabel, record_id, aksi, data_lama, data_baru, user_id, timestamps)
 
 ---
@@ -56,38 +56,57 @@
 ### 3. **Saldo & Audit Log**
 
 -   Saldo kas bisa dihitung otomatis.
--   Audit log sudah aktif → semua perubahan DB tercatat.
+-   Audit log aktif → semua perubahan DB tercatat.
 
-### 4. **Pembelian (Livewire Form)**
+### 4. **Pembelian (Form Livewire)**
 
--   Supplier sebagai gatekeeper sebelum input barang.
--   Row barang dengan input manual nama, qty, harga (format rupiah realtime).
--   Toggle pajak per row, bisa bulk update.
--   Manajemen row (tambah/hapus).
--   Validasi field sebelum simpan.
--   Transaksi pembelian → otomatis membuat Pembelian, Item, PergerakanStok, TransaksiKas.
--   Toast sukses setelah simpan.
+-   Supplier harus dipilih dulu.
+-   Input row barang (nama, qty, harga beli).
+-   Harga realtime format rupiah.
+-   Toggle pajak (bulk update tersedia).
+-   Validasi sebelum simpan.
+-   Saat simpan:
+    -   Generate **no_faktur unik** (`INYYYYMMDDNNN`).
+    -   Buat record Pembelian + Item.
+    -   Update relasi Produk–Supplier.
+    -   Catat stok masuk ke `pergerakan_stoks`.
+    -   Buat transaksi kas keluar otomatis.
+-   UI sudah Flowbite-style, tombol **Pakai Pajak/Tanpa Pajak** rapi.
 
-### 5. **Penjualan (Livewire Form)**
+### 5. **Penjualan (Form Livewire)**
 
 -   Input produk via search (kode/nama).
--   Produk dipilih dari stok FIFO (`pergerakan_stoks`).
--   Cart bisa edit qty & harga jual (format rupiah realtime).
--   Validasi stok tidak boleh minus.
--   **Logic Baru:**
-    -   Saat simpan, stok diambil FIFO dari supplier.
-    -   Hasil penjualan **dikelompokkan berdasarkan status pajak**:
-        -   Jika barang kena pajak → 1 invoice (`penjualans`) dengan flag `kena_pajak=true`.
-        -   Jika barang non-pajak → 1 invoice (`penjualans`) dengan flag `kena_pajak=false`.
-        -   Jadi 1 transaksi customer bisa pecah menjadi **≥ 1 invoice**.
-    -   Tiap invoice dapat nomor struk auto-generate (`INVYYYYMMDDNNN`).
-    -   Item Penjualan (`item_penjualans`) simpan detail produk + asal supplier (`produk_supplier_id`) + flag pajak.
-    -   Stok keluar dicatat di `pergerakan_stoks` dengan supplier & flag pajak.
-    -   Transaksi kas masuk otomatis tercatat per invoice.
+-   Produk diambil dari stok FIFO (`pergerakan_stoks`).
+-   Bisa edit qty & harga jual (format rupiah realtime).
+-   Validasi stok tidak minus.
+-   Logic simpan:
+    -   Pecah invoice berdasarkan status pajak.
+    -   Nomor struk auto-generate (`INVYYYYMMDDNNN`).
+    -   Item penjualan simpan `produk_supplier_id` + pajak.
+    -   Stok keluar dicatat.
+    -   Transaksi kas masuk otomatis.
+
+### 6. **Laporan Pembelian**
+
+-   Route: `/laporan/beli` → `<livewire:pembelian.laporan />`.
+-   Fitur:
+    -   Filter tanggal awal–akhir.
+    -   Filter supplier.
+    -   Filter tipe pajak.
+    -   Cari nomor faktur.
+    -   Ringkasan total pembelian.
+    -   Tabel daftar faktur dengan pagination.
+    -   Kolom status pajak (Pajak/Non Pajak).
+    -   Modal detail pembelian (info + item barang).
+    -   Export PDF per faktur (alamat dipilih dulu).
+    -   Export PDF bulk (multi faktur, multi file, bukan zip).
+    -   Checkbox per row + **select all/unselect all**.
+    -   Reset selection saat filter berubah.
+-   UI: tabel compact, tombol download disabled kalau alamat belum dipilih.
 
 ---
 
-## 📊 Contoh Kasus Penjualan
+## 📊 Contoh Kasus Penjualan (FIFO + Pajak)
 
 ### Stok
 
@@ -105,3 +124,5 @@
 -   **Penjualan #2 (non-pajak)** → A=40 (Supp B), C=30 (Supp C)
 
 Total invoice: **2**
+
+---

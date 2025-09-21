@@ -14,7 +14,6 @@ class ItemPembelian extends Model
         'produk_id',
         'harga_beli',
         'qty',
-        'kena_pajak',
     ];
 
     // Relasi ke Pembelian

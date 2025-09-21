@@ -165,6 +165,20 @@
                         <span class="ml-3">Pembelian</span>
                     </a>
                 </li>
+                <li>
+                    <a href="{{ route('laporan.index',['type'=>'jual']) }}"
+                        class="flex items-center p-2 transition duration-200 text-white hover:text-primary-700 rounded-lg hover:bg-gray-100">
+                        <i class="fa-solid fa-file-arrow-up"></i>
+                        <span class="ml-3">Laporan Penjualan</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="{{ route('laporan.index',['type'=>'beli']) }}"
+                        class="flex items-center p-2 transition duration-200 text-white hover:text-primary-700 rounded-lg hover:bg-gray-100">
+                        <i class="fa-solid fa-file-arrow-down"></i>
+                        <span class="ml-3">Laporan Pembelian</span>
+                    </a>
+                </li>
 
             </ul>
         </div>

@@ -14,6 +14,8 @@ return new class extends Migration
         Schema::create('pembelians', function (Blueprint $table) {
             $table->id();
             $table->foreignId('supplier_id')->constrained('suppliers');
+            $table->string('no_faktur')->unique();
+            $table->boolean('kena_pajak')->default(false);
             $table->date('tanggal');
             $table->decimal('total', 15, 2);
             $table->text('keterangan')->nullable();

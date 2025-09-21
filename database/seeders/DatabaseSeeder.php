@@ -103,6 +103,7 @@ class DatabaseSeeder extends Seeder
 
         // === 6. Contoh Pembelian ===
         $pembelian = Pembelian::create([
+            'no_faktur' => Pembelian::generateNoFaktur(),
             'supplier_id' => $supplier1->id,
             'tanggal' => Carbon::now()->subDays(3),
             'total' => 0, // akan dihitung ulang
@@ -114,7 +115,6 @@ class DatabaseSeeder extends Seeder
             'produk_id' => $produkA->id,
             'harga_beli' => 65000,
             'qty' => 10,
-            'kena_pajak' => true
         ]);
 
         // update total pembelian

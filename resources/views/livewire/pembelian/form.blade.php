@@ -11,11 +11,11 @@
         </div>
         <div class="col-span-2">
             <button type="button" wire:click="togglePajak" @disabled(empty($supplier_id))
-                @class([ 'w-full font-medium rounded-lg text-sm px-5 py-2.5 text-center shadow-md' , $tanpaPajak
+                @class([ 'w-full font-medium rounded-lg text-sm px-5 py-2.5 text-center shadow-md' , $kenaPajak
                 ? 'bg-primary-700 text-white focus:ring-primary-300'
                 : 'border border-primary-700 text-primary-700 focus:ring-primary-300' , empty($supplier_id)
                 ? 'cursor-not-allowed opacity-50' : '' ])>
-                {{ $tanpaPajak ? 'Pakai Pajak' : 'Tanpa Pajak' }}
+                {{ $kenaPajak ? 'Pakai Pajak' : 'Tanpa Pajak' }}
             </button>
         </div>
     </div>

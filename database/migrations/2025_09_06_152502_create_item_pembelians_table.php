@@ -17,7 +17,6 @@ return new class extends Migration
             $table->foreignId('produk_id')->constrained('produks');
             $table->decimal('harga_beli', 15, 2);
             $table->integer('qty');
-            $table->boolean('kena_pajak')->default(false);
             $table->timestamps();
         });
     }

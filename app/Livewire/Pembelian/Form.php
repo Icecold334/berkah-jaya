@@ -19,7 +19,7 @@ class Form extends Component
     public $supplier_id;
     public $tanggal;
     public $keterangan;
-    public $tanpaPajak = true;
+    public $kenaPajak = false; // ✅ konsisten dengan blade
 
     public $items = []; // {nama, qty, harga_beli, kena_pajak}
 
@@ -35,7 +35,7 @@ class Form extends Component
             'nama' => '',
             'qty' => 1,
             'harga_beli' => 0,
-            'kena_pajak' => $this->tanpaPajak,
+            'kena_pajak' => $this->kenaPajak,
         ];
     }
 
@@ -47,16 +47,16 @@ class Form extends Component
 
     public function togglePajak()
     {
-        $this->tanpaPajak = !$this->tanpaPajak;
+        $this->kenaPajak = !$this->kenaPajak;
 
-        // update semua row
+        // ✅ optional: update semua row item
         foreach ($this->items as $i => $item) {
-            $this->items[$i]['kena_pajak'] = $this->tanpaPajak;
+            $this->items[$i]['kena_pajak'] = $this->kenaPajak;
         }
     }
+
     public function simpan()
     {
-        // normalisasi semua harga_beli ke angka murni
         foreach ($this->items as $i => $item) {
             if (isset($item['harga_beli'])) {
                 $this->items[$i]['harga_beli'] = preg_replace('/[^0-9]/', '', $item['harga_beli']);
@@ -65,71 +65,72 @@ class Form extends Component
 
         $this->validate([
             'supplier_id' => 'required|exists:suppliers,id',
-            // 'tanggal' => 'required|date',
-            // 'items.*.nama' => 'required|string|min:2',
-            // 'items.*.qty' => 'required|numeric|min:1',
-            // 'items.*.harga_beli' => 'required|numeric|min:0',
         ]);
+
         DB::transaction(function () {
+            $noFaktur = Pembelian::generateNoFaktur();
+
             $pembelian = Pembelian::create([
+                'no_faktur'   => $noFaktur,
                 'supplier_id' => $this->supplier_id,
-                'tanggal' => $this->tanggal,
-                'total' => collect($this->items)->sum(fn($i) => $i['harga_beli'] * $i['qty']),
-                'keterangan' => $this->keterangan,
+                'tanggal'     => $this->tanggal,
+                // ✅ kalau ada item kena pajak, otomatis pembelian kena pajak
+                'kena_pajak'  => collect($this->items)->contains(fn($i) => $i['kena_pajak']),
+                'total'       => collect($this->items)->sum(fn($i) => $i['harga_beli'] * $i['qty']),
+                'keterangan'  => $this->keterangan,
             ]);
 
             foreach ($this->items as $item) {
                 $produk = Produk::firstOrCreate(
                     ['slug' => Str::slug($item['nama'])],
                     [
-                        'nama' => $item['nama'],
-                        'kode_barang' => fake()->unique()->numerify('BJ#####') // tambahkan unique
+                        'nama'        => $item['nama'],
+                        'kode_barang' => fake()->unique()->numerify('BJ#####'),
                     ]
                 );
 
                 ItemPembelian::create([
                     'pembelian_id' => $pembelian->id,
-                    'produk_id' => $produk->id,
-                    'harga_beli' => $item['harga_beli'],
-                    'qty' => $item['qty'],
-                    'kena_pajak' => $item['kena_pajak'] ?? false,
+                    'produk_id'    => $produk->id,
+                    'harga_beli'   => $item['harga_beli'],
+                    'qty'          => $item['qty'],
+                    'kena_pajak'   => $item['kena_pajak'] ?? false,
                 ]);
 
-                // ✅ Update relasi produk–supplier
-                ProdukSupplier::updateOrCreate(
+                $produkSupplier = ProdukSupplier::updateOrCreate(
                     [
-                        'produk_id' => $produk->id,
+                        'produk_id'   => $produk->id,
                         'supplier_id' => $this->supplier_id,
                     ],
                     [
-                        'harga_beli' => $item['harga_beli'],
-                        'kena_pajak' => $item['kena_pajak'] ?? false,
+                        'harga_beli'                 => $item['harga_beli'],
+                        'kena_pajak'                 => $item['kena_pajak'] ?? false,
                         'tanggal_pembelian_terakhir' => $this->tanggal,
                     ]
                 );
 
                 PergerakanStok::create([
-                    'produk_id' => $produk->id,
-                    'tanggal' => $this->tanggal,
-                    'produk_supplier_id' => $this->supplier_id,
-                    'tipe' => 'masuk',
-                    'qty' => $item['qty'],
-                    'sumber_type' => Pembelian::class,
-                    'sumber_id' => $pembelian->id,
-                    'keterangan' => 'Pembelian',
+                    'produk_id'          => $produk->id,
+                    'tanggal'            => $this->tanggal,
+                    'produk_supplier_id' => $produkSupplier->id,
+                    'tipe'               => 'masuk',
+                    'qty'                => $item['qty'],
+                    'kena_pajak'         => $item['kena_pajak'] ?? false,
+                    'sumber_type'        => Pembelian::class,
+                    'sumber_id'          => $pembelian->id,
+                    'keterangan'         => 'Pembelian',
                 ]);
             }
 
-
             TransaksiKas::create([
-                'akun_kas_id' => 1, // TODO: pilih akun kas di form
-                'tanggal' => $this->tanggal,
-                'tipe' => 'keluar',
+                'akun_kas_id' => 1,
+                'tanggal'     => $this->tanggal,
+                'tipe'        => 'keluar',
                 'kategori_id' => 2,
-                'jumlah' => $pembelian->total,
-                'keterangan' => 'Pembelian #' . $pembelian->id,
+                'jumlah'      => $pembelian->total,
+                'keterangan'  => 'Pembelian #' . $pembelian->no_faktur,
                 'sumber_type' => Pembelian::class,
-                'sumber_id' => $pembelian->id,
+                'sumber_id'   => $pembelian->id,
             ]);
         });
 
@@ -146,9 +147,11 @@ class Form extends Component
     {
         $this->supplier_id = '';
         $this->keterangan = '';
+        $this->kenaPajak = false; // reset
         $this->items = [];
         $this->addItem();
     }
+
     public function render()
     {
         return view('livewire.pembelian.form', [

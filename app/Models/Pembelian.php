@@ -9,7 +9,12 @@ use Illuminate\Database\Eloquent\Relations\MorphOne;
 class Pembelian extends Model
 {
     protected $table = 'pembelians';
-    protected $fillable = ['supplier_id', 'tanggal', 'total', 'keterangan'];
+    protected $fillable = ['no_faktur', 'supplier_id', 'tanggal', 'total', 'keterangan', 'kena_pajak',];
+
+    protected $casts = [
+        'tanggal' => 'date',
+        'kena_pajak' => 'boolean',
+    ];
 
     /** 🔗 Relasi **/
 
@@ -44,5 +49,20 @@ class Pembelian extends Model
     {
         $this->total = $this->items()->sum(DB::raw('harga_beli * qty'));
         $this->save();
+    }
+
+    public static function generateNoFaktur()
+    {
+        $prefix = 'IN' . now()->format('Ymd');
+
+        $last = self::where('no_faktur', 'like', $prefix . '%')
+            ->orderBy('no_faktur', 'desc')
+            ->first();
+
+        $number = $last
+            ? intval(substr($last->no_faktur, -3)) + 1
+            : 1;
+
+        return $prefix . str_pad($number, 3, '0', STR_PAD_LEFT);
     }
 }
