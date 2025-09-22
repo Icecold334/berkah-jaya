@@ -153,7 +153,8 @@ class Form extends Component
                     $ambil = min($qty, $stokTersisa);
                     $qty -= $ambil;
 
-                    $kenaPajak = $stok->sumber->items->first()->kena_pajak ? 'pajak' : 'non_pajak';
+
+                    $kenaPajak = $stok->sumber->kena_pajak ? 'pajak' : 'non_pajak';
                     $grouped[$kenaPajak][] = [
                         'produk_id' => $produk->id,
                         'produk_supplier_id' => $stok->produk_supplier_id,
@@ -164,6 +165,7 @@ class Form extends Component
                     ];
                 }
             }
+
             // 🔹 Proses tiap kelompok (pajak / non pajak)
             foreach ($grouped as $tipe => $items) {
                 if (empty($items)) continue;

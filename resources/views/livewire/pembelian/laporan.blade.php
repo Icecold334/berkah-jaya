@@ -154,7 +154,7 @@
                     <tbody>
                         <tr>
                             <td class="font-semibold w-1/4 py-1">Tanggal</td>
-                            <td class="py-1">{{ $detail->tanggal->format('d/m/Y') }}</td>
+                            <td class="py-1">{{ $detail->tanggal->translatedFormat('l, d F Y H:i') }}</td>
                         </tr>
                         <tr>
                             <td class="font-semibold py-1">Supplier</td>
@@ -184,7 +184,7 @@
                             <tr>
                                 <th class="px-4 py-2 text-left">Produk</th>
                                 <th class="px-4 py-2 text-right">Qty</th>
-                                <th class="px-4 py-2 text-right">Harga</th>
+                                <th class="px-4 py-2 text-right">Harga Satuan</th>
                                 <th class="px-4 py-2 text-right">Subtotal</th>
                             </tr>
                         </thead>

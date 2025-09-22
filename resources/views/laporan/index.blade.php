@@ -1,6 +1,9 @@
 <x-body>
   @if ($type == 'beli')
   <livewire:pembelian.laporan />
+  @else
+  <livewire:penjualan.laporan />
+  @endif
   @push('scripts')
   <script>
     window.addEventListener('open-pdf', event => {
@@ -12,7 +15,4 @@
       });
   </script>
   @endpush
-  @else
-  <livewire:penjualan.laporan />
-  @endif
 </x-body>

@@ -20,7 +20,7 @@
 
 ---
 
-## 🗄️ Daftar Tabel POS Saat Ini
+## 🗄️ Daftar Tabel POS
 
 1. **produks** (id, nama, slug, kode_barang, timestamps)
 2. **suppliers** (id, nama, alamat, telepon, npwp, timestamps)
@@ -29,7 +29,7 @@
 5. **item_pembelians** (id, pembelian_id, produk_id, harga_beli, qty, kena_pajak, timestamps)
 6. **penjualans** (id, no_struk, customer_id, tanggal, total, kena_pajak, timestamps)
 7. **item_penjualans** (id, penjualan_id, produk_id, produk_supplier_id, harga_jual, qty, subtotal, kena_pajak, timestamps)
-8. **customers** (id, nama, telepon, alamat, timestamps) – opsional
+8. **customers** (id, nama, telepon, alamat, timestamps) – _opsional, belum dipakai sekarang_
 9. **akun_kas** (id, nama, tipe, saldo_awal, timestamps)
 10. **kategori_kas** (id, tipe, nama, timestamps)
 11. **transaksi_kas** (id, akun_kas_id, tanggal, tipe, kategori_id, jumlah, keterangan, sumber_type, sumber_id, timestamps)
@@ -42,67 +42,74 @@
 
 ### 1. **Model & Relasi**
 
--   Semua model & relasi sudah dibuat: Produk, Supplier, Pembelian+Item, Penjualan+Item, Customer, AkunKas, KategoriKas, TransaksiKas, PergerakanStok, AuditLog.
+-   Semua model & relasi sudah dibuat.
 
 ### 2. **Seeder**
 
--   Produk contoh (Beras, Minyak).
--   Supplier contoh (PT Sumber Pangan, CV Minyak Sejahtera).
--   Customer contoh (Budi, Siti).
--   Akun Kas contoh (Kas Toko, Bank BCA).
--   Kategori Kas contoh (Penjualan, Pembelian, Biaya Operasional).
--   Contoh Pembelian & Penjualan → otomatis memengaruhi stok & kas.
+-   Data contoh: produk, supplier, customer, akun kas, kategori kas, pembelian & penjualan → otomatis memengaruhi stok & kas.
 
 ### 3. **Saldo & Audit Log**
 
--   Saldo kas bisa dihitung otomatis.
--   Audit log aktif → semua perubahan DB tercatat.
+-   Saldo kas otomatis.
+-   Audit log aktif.
 
 ### 4. **Pembelian (Form Livewire)**
 
--   Supplier harus dipilih dulu.
+-   Supplier wajib pilih dulu.
 -   Input row barang (nama, qty, harga beli).
--   Harga realtime format rupiah.
 -   Toggle pajak (bulk update tersedia).
--   Validasi sebelum simpan.
--   Saat simpan:
-    -   Generate **no_faktur unik** (`INYYYYMMDDNNN`).
-    -   Buat record Pembelian + Item.
-    -   Update relasi Produk–Supplier.
-    -   Catat stok masuk ke `pergerakan_stoks`.
-    -   Buat transaksi kas keluar otomatis.
--   UI sudah Flowbite-style, tombol **Pakai Pajak/Tanpa Pajak** rapi.
+-   Validasi → simpan → generate `no_faktur` unik, simpan pembelian, update stok & kas.
+-   UI Flowbite-style.
 
 ### 5. **Penjualan (Form Livewire)**
 
 -   Input produk via search (kode/nama).
--   Produk diambil dari stok FIFO (`pergerakan_stoks`).
--   Bisa edit qty & harga jual (format rupiah realtime).
+-   Stok ambil FIFO dari `pergerakan_stoks`.
+-   Bisa edit qty & harga jual.
 -   Validasi stok tidak minus.
--   Logic simpan:
-    -   Pecah invoice berdasarkan status pajak.
-    -   Nomor struk auto-generate (`INVYYYYMMDDNNN`).
-    -   Item penjualan simpan `produk_supplier_id` + pajak.
-    -   Stok keluar dicatat.
-    -   Transaksi kas masuk otomatis.
+-   Simpan → pecah invoice berdasarkan pajak, generate `no_struk`, simpan item, update stok, transaksi kas masuk otomatis.
 
 ### 6. **Laporan Pembelian**
 
--   Route: `/laporan/beli` → `<livewire:pembelian.laporan />`.
--   Fitur:
-    -   Filter tanggal awal–akhir.
-    -   Filter supplier.
-    -   Filter tipe pajak.
-    -   Cari nomor faktur.
-    -   Ringkasan total pembelian.
-    -   Tabel daftar faktur dengan pagination.
-    -   Kolom status pajak (Pajak/Non Pajak).
-    -   Modal detail pembelian (info + item barang).
-    -   Export PDF per faktur (alamat dipilih dulu).
-    -   Export PDF bulk (multi faktur, multi file, bukan zip).
-    -   Checkbox per row + **select all/unselect all**.
-    -   Reset selection saat filter berubah.
+-   Route: `/laporan/beli` → `<livewire:pembelian.laporan />`
+-   Fitur lengkap: filter, tabel, detail, export PDF (single & bulk).
 -   UI: tabel compact, tombol download disabled kalau alamat belum dipilih.
+
+### 7. **Laporan Penjualan**
+
+-   Route: `/laporan/jual` → `<livewire:penjualan.laporan />`
+-   **Filter**: tanggal, pajak, no struk (customer skip dulu).
+-   **Tabel**: daftar penjualan + checkbox select all.
+-   **Modal detail**: info penjualan, status pajak, item barang.
+-   **Export PDF**: per nota (`pdf/penjualan.blade.php`) dan bulk download.
+    -   Bulk download: tiap nota dipicu event `open-pdf`.
+    -   Fix dispatch:
+        ```php
+        $this->dispatch('open-pdf', [
+            'content'  => base64_encode($pdf->output()),
+            'filename' => "penjualan-{$penjualan->no_struk}.pdf",
+        ]);
+        ```
+    -   Listener JS:
+        ```blade
+        @push('scripts')
+        <script>
+          window.addEventListener('open-pdf', event => {
+            const { content, filename } = event.detail;
+            const link = document.createElement('a');
+            link.href = "data:application/pdf;base64," + content;
+            link.download = filename;
+            link.click();
+          });
+        </script>
+        @endpush
+        ```
+
+### 8. **PDF Template**
+
+-   File: `resources/views/pdf/penjualan.blade.php`
+-   Struktur sama dengan pembelian, tapi judul & field menyesuaikan (`no_struk`, `harga_jual`, `subtotal`).
+-   Customer sementara ditampilkan `-` atau skip.
 
 ---
 
@@ -124,5 +131,3 @@
 -   **Penjualan #2 (non-pajak)** → A=40 (Supp B), C=30 (Supp C)
 
 Total invoice: **2**
-
----

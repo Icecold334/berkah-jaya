@@ -28,7 +28,7 @@
                         <th class="px-6 py-3 w-1/12">#</th>
                         <th class="px-6 py-3">Nama Barang</th>
                         <th class="px-6 py-3">Jumlah</th>
-                        <th class="px-6 py-3">Harga</th>
+                        <th class="px-6 py-3">Harga Satuan</th>
                         <th class="px-6 py-3 w-1/12"></th>
                     </tr>
                 </thead>

@@ -10,6 +10,11 @@ class Penjualan extends Model
     protected $table = 'penjualans';
     protected $fillable = ['customer_id', 'tanggal', 'total', 'no_struk', 'kena_pajak'];
 
+    protected $casts = [
+        'tanggal' => 'date',
+        'kena_pajak' => 'boolean',
+    ];
+
     /** 🔗 Relasi **/
 
     // Penjualan milik 1 customer (opsional)
