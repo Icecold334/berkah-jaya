@@ -82,34 +82,24 @@
 -   **Tabel**: daftar penjualan + checkbox select all.
 -   **Modal detail**: info penjualan, status pajak, item barang.
 -   **Export PDF**: per nota (`pdf/penjualan.blade.php`) dan bulk download.
-    -   Bulk download: tiap nota dipicu event `open-pdf`.
-    -   Fix dispatch:
-        ```php
-        $this->dispatch('open-pdf', [
-            'content'  => base64_encode($pdf->output()),
-            'filename' => "penjualan-{$penjualan->no_struk}.pdf",
-        ]);
-        ```
-    -   Listener JS:
-        ```blade
-        @push('scripts')
-        <script>
-          window.addEventListener('open-pdf', event => {
-            const { content, filename } = event.detail;
-            const link = document.createElement('a');
-            link.href = "data:application/pdf;base64," + content;
-            link.download = filename;
-            link.click();
-          });
-        </script>
-        @endpush
-        ```
 
 ### 8. **PDF Template**
 
 -   File: `resources/views/pdf/penjualan.blade.php`
 -   Struktur sama dengan pembelian, tapi judul & field menyesuaikan (`no_struk`, `harga_jual`, `subtotal`).
 -   Customer sementara ditampilkan `-` atau skip.
+
+### 9. **Menu Arus Kas**
+
+-   Route: `/kas` → `<livewire:kas.list-data />`
+-   **Filter**: tanggal, akun kas, kategori kas, keterangan.
+-   **Tabel**: daftar transaksi kas (tanggal, akun, tipe masuk/keluar, kategori, jumlah, keterangan, sumber).
+-   **Saldo akhir** otomatis dihitung dari query filter aktif.
+-   **Tambah transaksi manual**:
+    -   Tombol “Tambah Transaksi” → modal Livewire.
+    -   Form: tanggal (default = hari ini), akun kas, tipe (masuk/keluar), kategori (aktif setelah tipe dipilih), jumlah (input dengan auto-format Rupiah JS), keterangan.
+    -   Simpan → insert ke `transaksi_kas` dengan `sumber_type = 'manual'`, `sumber_id = 0`.
+-   **Format input Rupiah**: pakai Alpine + JS `formatRupiah()`, Livewire terima angka mentah.
 
 ---
 

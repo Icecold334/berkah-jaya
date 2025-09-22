@@ -18,7 +18,9 @@ class TransaksiKas extends Model
         'sumber_id'
     ];
 
-
+    protected $casts = [
+        'tanggal' => 'date',
+    ];
     /** 🔗 Relasi **/
 
     public function akunKas()

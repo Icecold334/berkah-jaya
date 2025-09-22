@@ -85,6 +85,7 @@ class DatabaseSeeder extends Seeder
 
         // === 4. Kategori Kas ===
         $katPenjualan = KategoriKas::create(['tipe' => 'masuk', 'nama' => 'Penjualan']);
+        $katInject = KategoriKas::create(['tipe' => 'masuk', 'nama' => 'Investment']);
         $katPembelian = KategoriKas::create(['tipe' => 'keluar', 'nama' => 'Pembelian']);
         $katLainnya   = KategoriKas::create(['tipe' => 'keluar', 'nama' => 'Biaya Operasional']);
 

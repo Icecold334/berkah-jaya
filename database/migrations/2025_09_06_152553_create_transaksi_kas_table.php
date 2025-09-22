@@ -19,7 +19,7 @@ return new class extends Migration
             $table->foreignId('akun_kas_id')->constrained('akun_kas');
             $table->decimal('jumlah', 15, 2);
             $table->text('keterangan')->nullable();
-            $table->morphs('sumber'); // sumber_type, sumber_id
+            $table->nullableMorphs('sumber'); // sumber_type, sumber_id
             $table->timestamps();
         });
     }

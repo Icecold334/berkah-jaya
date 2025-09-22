@@ -140,8 +140,15 @@
                 <li>
                     <a href="#"
                         class="flex items-center p-2 transition duration-200 text-white hover:text-primary-700 rounded-lg hover:bg-gray-100">
-                        <i class="fa-solid fa-icons"></i>
+                        <i class="fa-solid fa-gauge-high"></i>
                         <span class="ml-3">Dashboard</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="{{ route('kas.index') }}"
+                        class="flex items-center p-2 transition duration-200 text-white hover:text-primary-700 rounded-lg hover:bg-gray-100">
+                        <i class="fa-solid fa-money-bill-transfer"></i>
+                        <span class="ml-3">Arus Kas</span>
                     </a>
                 </li>
                 <li>
