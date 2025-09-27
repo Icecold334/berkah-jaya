@@ -45,6 +45,6 @@ class AppServiceProvider extends ServiceProvider
         foreach ($models as $model) {
             $model::observe(AuditObserver::class);
         }
-        Auth::loginUsingId(1);
+        // Auth::loginUsingId(1);
     }
 }

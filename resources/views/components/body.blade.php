@@ -138,7 +138,7 @@
         <div class="h-full px-3 pb-4 overflow-y-auto">
             <ul class="space-y-2 font-medium">
                 <li>
-                    <a href="#"
+                    <a href="{{ route('dashboard') }}"
                         class="flex items-center p-2 transition duration-200 text-white hover:text-primary-700 rounded-lg hover:bg-gray-100">
                         <i class="fa-solid fa-gauge-high"></i>
                         <span class="ml-3">Dashboard</span>
