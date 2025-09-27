@@ -105,7 +105,7 @@ class ListData extends Component
 
             $pergerakan = PergerakanStok::with('sumber')
                 ->where('produk_id', $this->detailProdukId)
-                ->orderByDesc('tanggal')
+                ->orderByDesc('id')
                 ->paginate(10, ['*'], 'pergerakanPage');
         }
 
