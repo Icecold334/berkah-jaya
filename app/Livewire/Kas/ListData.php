@@ -89,7 +89,7 @@ class ListData extends Component
                 fn($q) =>
                 $q->where('keterangan', 'like', '%' . $this->search_keterangan . '%')
             )
-            ->orderByDesc('tanggal');
+            ->orderByDesc('id');
 
         $transaksiKas = $query->paginate(15);
 

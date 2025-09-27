@@ -154,7 +154,7 @@ class Laporan extends Component
             ->when($this->search_no_struk, fn($q) => $q->where('no_struk', 'like', '%' . $this->search_no_struk . '%'));
 
         $penjualans = (clone $baseQuery)
-            ->orderBy('tanggal', 'desc')
+            ->orderBy('id', 'desc')
             ->paginate(10);
 
         $total = (clone $baseQuery)->sum('total');

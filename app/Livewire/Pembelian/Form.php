@@ -126,7 +126,7 @@ class Form extends Component
                 'akun_kas_id' => 1,
                 'tanggal'     => $this->tanggal,
                 'tipe'        => 'keluar',
-                'kategori_id' => 2,
+                'kategori_id' => 3, // pembelian
                 'jumlah'      => $pembelian->total,
                 'keterangan'  => 'Pembelian #' . $pembelian->no_faktur,
                 'sumber_type' => Pembelian::class,

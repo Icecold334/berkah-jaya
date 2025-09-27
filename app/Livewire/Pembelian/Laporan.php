@@ -150,7 +150,7 @@ class Laporan extends Component
 
 
         $pembelians = (clone $baseQuery)
-            ->orderBy('tanggal', 'desc')
+            ->orderBy('id', 'desc')
             ->paginate(10);
 
         $total = (clone $baseQuery)->sum('total');

@@ -72,13 +72,13 @@ class DatabaseSeeder extends Seeder
             'tanggal_pembelian_terakhir' => Carbon::now()->subDays(2)
         ]);
         $kasToko = AkunKas::create([
-            'nama' => 'Kas Toko',
+            'nama' => 'Akun Kas 1',
             'tipe' => 'tunai',
             'saldo_awal' => 0
         ]);
 
         $bankBCA = AkunKas::create([
-            'nama' => 'Bank BCA',
+            'nama' => 'Akun Kas 2',
             'tipe' => 'bank',
             'saldo_awal' => 1000000
         ]);

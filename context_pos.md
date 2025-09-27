@@ -16,7 +16,7 @@
 -   **Kas** = satu tabel terintegrasi, gabungan penjualan, pembelian, input manual, dan bisa multi akun kas (kas toko, bank, e-wallet).
 -   Ada **kategori kas masuk/keluar**, bisa dipilih saat input.
 -   **Audit log**: semua perubahan database (insert/update/delete) otomatis tercatat.
--   **Retur & Stok Opname** → tidak pakai tabel baru, cukup entri manual di `pergerakan_stoks` + `transaksi_kas`.
+-   **Retur & Stok Opname (SO)** → tidak pakai tabel baru untuk sekarang, cukup entri manual di `pergerakan_stoks` + `transaksi_kas`. (opsi tabel SO baru bisa ditambahkan nanti).
 
 ---
 
@@ -29,16 +29,16 @@
 5. **item_pembelians** (id, pembelian_id, produk_id, harga_beli, qty, kena_pajak, timestamps)
 6. **penjualans** (id, no_struk, customer_id, tanggal, total, kena_pajak, timestamps)
 7. **item_penjualans** (id, penjualan_id, produk_id, produk_supplier_id, harga_jual, qty, subtotal, kena_pajak, timestamps)
-8. **customers** (id, nama, telepon, alamat, timestamps) – _opsional, belum dipakai sekarang_
+8. **customers** (id, nama, telepon, alamat, timestamps) – _opsional_
 9. **akun_kas** (id, nama, tipe, saldo_awal, timestamps)
 10. **kategori_kas** (id, tipe, nama, timestamps)
 11. **transaksi_kas** (id, akun_kas_id, tanggal, tipe, kategori_id, jumlah, keterangan, sumber_type, sumber_id, timestamps)
-12. **pergerakan_stoks** (id, produk_id, produk_supplier_id, tanggal, tipe, qty, kena_pajak, sumber_type, sumber_id, keterangan, timestamps)
+12. **pergerakan_stoks** (id, produk_id, tanggal, tipe, qty, sumber_type, sumber_id, keterangan, timestamps)
 13. **audit_logs** (id, tabel, record_id, aksi, data_lama, data_baru, user_id, timestamps)
 
 ---
 
-## ✅ Progres Implementasi
+## ✅ Progress Implementasi
 
 ### 1. **Model & Relasi**
 
@@ -95,11 +95,22 @@
 -   **Filter**: tanggal, akun kas, kategori kas, keterangan.
 -   **Tabel**: daftar transaksi kas (tanggal, akun, tipe masuk/keluar, kategori, jumlah, keterangan, sumber).
 -   **Saldo akhir** otomatis dihitung dari query filter aktif.
--   **Tambah transaksi manual**:
-    -   Tombol “Tambah Transaksi” → modal Livewire.
-    -   Form: tanggal (default = hari ini), akun kas, tipe (masuk/keluar), kategori (aktif setelah tipe dipilih), jumlah (input dengan auto-format Rupiah JS), keterangan.
-    -   Simpan → insert ke `transaksi_kas` dengan `sumber_type = 'manual'`, `sumber_id = 0`.
--   **Format input Rupiah**: pakai Alpine + JS `formatRupiah()`, Livewire terima angka mentah.
+-   **Tambah transaksi manual** → modal form.
+-   Format input Rupiah: pakai Alpine + JS `formatRupiah()`.
+
+### 10. **Menu Stok**
+
+-   Route: `/stok` → `<livewire:stok.list-data />`
+-   **Tabel stok**: nama barang, harga jual (default = harga beli max + 2% kalau pajak), stok pajak, stok non pajak, stok total.
+-   **Pencarian produk**: by nama / kode barang.
+-   **Modal detail per produk**: menampilkan riwayat pergerakan stok (masuk/keluar) descending, lengkap dengan:
+    -   Tanggal
+    -   Tipe (Masuk/Keluar)
+    -   Qty
+    -   Sumber (Pembelian / Penjualan / Manual)
+    -   Status Pajak (Pajak / Non Pajak / -)
+    -   Keterangan
+-   **Title modal** diperbarui → “Riwayat Pergerakan Stok – [Nama Barang]”.
 
 ---
 
@@ -121,3 +132,5 @@
 -   **Penjualan #2 (non-pajak)** → A=40 (Supp B), C=30 (Supp C)
 
 Total invoice: **2**
+
+---

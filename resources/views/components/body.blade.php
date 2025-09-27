@@ -35,8 +35,8 @@
                     </button>
                     <!-- Logo -->
                     <a href="#" class="flex ml-2 md:mr-24">
-                        <span class="self-center text-xl text-white font-semibold sm:text-2xl whitespace-nowrap">My
-                            Dashboard</span>
+                        <span class="self-center text-xl text-white font-semibold sm:text-2xl whitespace-nowrap">
+                            Berkah Jaya</span>
                     </a>
                 </div>
 
@@ -149,6 +149,13 @@
                         class="flex items-center p-2 transition duration-200 text-white hover:text-primary-700 rounded-lg hover:bg-gray-100">
                         <i class="fa-solid fa-money-bill-transfer"></i>
                         <span class="ml-3">Arus Kas</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="{{ route('stok.index') }}"
+                        class="flex items-center p-2 transition duration-200 text-white hover:text-primary-700 rounded-lg hover:bg-gray-100">
+                        <i class="fa-solid fa-boxes-stacked"></i>
+                        <span class="ml-3">Stok</span>
                     </a>
                 </li>
                 <li>
