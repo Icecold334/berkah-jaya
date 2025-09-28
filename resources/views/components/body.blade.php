@@ -4,7 +4,24 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard</title>
+    <title>
+        @php
+            $titles = [
+                'dashboard' => 'Dashboard',
+                'akun-kas.index' => 'Akun Kas',
+                'kategori-kas.index' => 'Kategori Kas',
+                'pembelian.index' => 'Pembelian',
+                'penjualan.index' => 'Penjualan',
+                'supplier.index' => 'Supplier',
+                'stok.index' => 'Stok',
+                'kas.index' => 'Kas',
+                'laporan.index' => 'Laporan',
+            ];
+            $current = Route::currentRouteName();
+        @endphp
+
+        {{ $titles[$current] ?? 'Berkah Jaya' }} | Berkah Jaya
+    </title>
     {{-- <script src="https://cdn.tailwindcss.com"></script> --}}
     <!-- Flowbite -->
     {{--
@@ -16,7 +33,7 @@
 
 <body class="bg-gradient-to-br from-primary-100 to-primary-200 min-h-screen">
 
-     <!-- NAVBAR -->
+    <!-- NAVBAR -->
     <x-navbar />
 
     <!-- SIDEBAR -->
