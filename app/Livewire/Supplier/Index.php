@@ -17,6 +17,7 @@ class Index extends Component
     public $supplierId, $nama, $alamat, $telepon;
 
     protected $paginationTheme = 'tailwind';
+    protected $listeners = ['delete'];
 
     protected $rules = [
         'nama' => 'required|string|max:255',
@@ -36,7 +37,7 @@ class Index extends Component
             ->where('nama', 'like', "%{$this->search}%")
             ->orWhere('alamat', 'like', "%{$this->search}%")
             ->orWhere('telepon', 'like', "%{$this->search}%")
-            ->orderBy('nama')
+            ->orderBy('updated_at', 'desc')
             ->paginate($this->perPage);
 
         return view('livewire.supplier.index', [

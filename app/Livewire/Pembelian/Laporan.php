@@ -89,7 +89,7 @@ class Laporan extends Component
         foreach ($this->selectedPembelians as $id) {
             $pembelian = Pembelian::with(['items.produk', 'supplier'])->findOrFail($id);
 
-            $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('pdf.pembelian', [
+            $pdf = Pdf::loadView('pdf.pembelian', [
                 'pembelian' => $pembelian,
                 'alamat'    => $alamat,
             ]);
@@ -125,7 +125,7 @@ class Laporan extends Component
         $alamatList = config('alamat');
         $alamat = $alamatList[$this->alamat_id] ?? reset($alamatList);
 
-        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('pdf.pembelian', [
+        $pdf = Pdf::loadView('pdf.pembelian', [
             'pembelian' => $pembelian,
             'alamat'    => $alamat,
         ]);
