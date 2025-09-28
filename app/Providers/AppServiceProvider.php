@@ -4,6 +4,7 @@ namespace App\Providers;
 
 use App\Models\Produk;
 use App\Models\AkunKas;
+use App\Models\Setting;
 use App\Models\Customer;
 use App\Models\Supplier;
 use App\Models\Pembelian;
@@ -40,6 +41,7 @@ class AppServiceProvider extends ServiceProvider
             KategoriKas::class,
             TransaksiKas::class,
             PergerakanStok::class,
+            Setting::class,
         ];
 
         foreach ($models as $model) {

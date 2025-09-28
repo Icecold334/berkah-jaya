@@ -8,6 +8,7 @@ use App\Http\Controllers\KasController;
 use App\Http\Controllers\StokController;
 use App\Http\Controllers\AkunKasController;
 use App\Http\Controllers\LaporanController;
+use App\Http\Controllers\SettingController;
 use App\Http\Controllers\SupplierController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\PembelianController;
@@ -17,6 +18,7 @@ use App\Http\Controllers\KategoriKasController;
 Route::middleware(['auth'])->group(function () {
   Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
+  Route::get('/setting', [SettingController::class, 'index'])->name('setting.index');
   Route::get('/akunkas', [AkunKasController::class, 'index'])->name('akun-kas.index');
   Route::get('/kategorikas', [KategoriKasController::class, 'index'])->name('kategori-kas.index');
   Route::get('/pembelian', [PembelianController::class, 'index'])->name('pembelian.index');
