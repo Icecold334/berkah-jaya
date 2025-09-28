@@ -65,7 +65,8 @@ Route::get('/', function () {
     $saldo = TransaksiKas::selectRaw("
     SUM(CASE WHEN tipe = 'masuk' THEN jumlah ELSE -jumlah END) as saldo
 ")->value('saldo');
-    return view('test', compact('saldo'));
+    // return view('test', compact('saldo'));
+    return redirect()->route('dashboard');
 })->name('home');
 
 // Route::view('dashboard', 'dashboard')
