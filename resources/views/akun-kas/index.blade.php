@@ -1,8 +1,8 @@
 <x-body>
-    <livewire:akun-kas.index>
-        @push('scripts')
-            <script>
-                // Confirm dialog
+    <livewire:akun-kas.index />
+    @push('scripts')
+    <script>
+        // Confirm dialog
                 window.addEventListener('confirm', event => {
                     Swal.fire({
                         title: event.detail.title,
@@ -40,6 +40,6 @@
                 Livewire.on('close-modal', () => {
                     window.dispatchEvent(new CustomEvent('close-modal'));
                 });
-            </script>
-        @endpush
+    </script>
+    @endpush
 </x-body>
