@@ -112,6 +112,13 @@
     -   Keterangan
 -   **Title modal** diperbarui → “Riwayat Pergerakan Stok – [Nama Barang]”.
 
+### 11. **Menu Supplier**
+
+-   Route: `/supplier` → `<livewire:supplier.index />`
+-   **Tabel stok**: nama, alamat, telepon, npwp, timestamp.
+-   **Pencarian supplier**: by nama / alamat /telepon.
+-   **Tampil data**: by update_at desc.
+
 ---
 
 ## 📊 Contoh Kasus Penjualan (FIFO + Pajak)
