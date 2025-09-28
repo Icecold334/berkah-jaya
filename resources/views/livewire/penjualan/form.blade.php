@@ -7,10 +7,10 @@
           placeholder="Cari barang (kode / nama)" wire:model.live="search" wire:focus="focusSearch" @focus="open = true"
           @blur="setTimeout(() => open = false, 150)">
 
-        @if(!empty($produkList))
+        @if (!empty($produkList))
         <ul x-show="open"
           class="absolute z-10 w-full bg-white border border-gray-200 rounded-lg shadow-md max-h-60 overflow-y-auto mt-1">
-          @foreach($produkList as $produk)
+          @foreach ($produkList as $produk)
           <li wire:click="pilihProduk({{ $produk['id'] }})" class="px-4 py-2 hover:bg-primary-100 cursor-pointer">
             {{ $produk['kode_barang'] }} - {{ $produk['nama'] }}
           </li>
@@ -26,7 +26,7 @@
     </div>
   </div>
   <div class="p-6 bg-primary-50 border border-primary-200 rounded-lg shadow-sm text-gray-800 col-span-8">
-    <table class="w-full text-sm text-center text-gray-500">
+    <table class="w-full text-sm text-center text-gray-900">
       <thead class="text-xs text-gray-700 uppercase bg-primary-50">
         <tr>
           <th class="px-6 py-3 w-1/12">#</th>
@@ -49,13 +49,13 @@
               <input type="number"
                 class="w-20 text-center rounded border-gray-300 focus:border-primary-500 focus:ring focus:ring-primary-200"
                 min="1" max="{{ $item['stok'] }}" wire:model.live="cart.{{ $i }}.qty" x-data x-on:input="
-              let val = parseInt($el.value) || 1;
-              let max = {{ $item['stok'] }};
-              if (val < 1) val = 1;
-              if (val > max) val = max;
-              $el.value = val;
-              $wire.set('cart.{{ $i }}.qty', val);
-           ">
+  let val = parseInt($el.value);
+  let max = {{ $item['stok'] }};
+  if (isNaN(val)) val = null; // kalau kosong/null
+  if (val !== null && val > max) val = max;
+  $el.value = val ?? '';
+  $wire.set('cart.{{ $i }}.qty', val);
+">
               <span class="text-xs text-gray-500 mt-1">Sisa stok: {{ $item['stok'] }}</span>
             </div>
           </td>
@@ -85,7 +85,7 @@
         @endforelse
       </tbody>
     </table>
-    @if(count($cart) > 0)
+    @if (count($cart) > 0 && collect($cart)->every(fn($c) => $c['qty'] > 0))
     <button type="button" wire:click="simpan"
       class="mt-6 bg-success-600 hover:bg-success-700 text-white font-semibold px-6 py-2 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-success-500">
       <i class="fa-solid fa-floppy-disk mr-1"></i> Simpan Penjualan
