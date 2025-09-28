@@ -184,5 +184,9 @@ class DatabaseSeeder extends Seeder
             'sumber_type' => Penjualan::class,
             'sumber_id' => $penjualan->id
         ]);
+
+        $this->call([
+            SettingSeeder::class,
+        ]);
     }
 }
