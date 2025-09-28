@@ -132,71 +132,7 @@
     </nav>
 
     <!-- SIDEBAR -->
-    <aside id="sidebar"
-        class="fixed top-0 left-0 z-40 w-64 h-screen pt-20 transition-transform -translate-x-full bg-gradient-to-b from-primary-600 to-primary-500 border-r border-gray-200 sm:translate-x-0"
-        aria-label="Sidebar">
-        <div class="h-full px-3 pb-4 overflow-y-auto">
-            <ul class="space-y-2 font-medium">
-                <li>
-                    <a href="{{ route('dashboard') }}"
-                        class="flex items-center p-2 transition duration-200 text-white hover:text-primary-700 rounded-lg hover:bg-gray-100">
-                        <i class="fa-solid fa-gauge-high"></i>
-                        <span class="ml-3">Dashboard</span>
-                    </a>
-                </li>
-                <li>
-                    <a href="{{ route('kas.index') }}"
-                        class="flex items-center p-2 transition duration-200 text-white hover:text-primary-700 rounded-lg hover:bg-gray-100">
-                        <i class="fa-solid fa-money-bill-transfer"></i>
-                        <span class="ml-3">Arus Kas</span>
-                    </a>
-                </li>
-                <li>
-                    <a href="{{ route('stok.index') }}"
-                        class="flex items-center p-2 transition duration-200 text-white hover:text-primary-700 rounded-lg hover:bg-gray-100">
-                        <i class="fa-solid fa-boxes-stacked"></i>
-                        <span class="ml-3">Stok</span>
-                    </a>
-                </li>
-                <li>
-                    <a href="{{ route('supplier.index') }}"
-                        class="flex items-center p-2 transition duration-200 text-white hover:text-primary-700 rounded-lg hover:bg-gray-100">
-                        <i class="fa-solid fa-id-card"></i>
-                        <span class="ml-3">Supplier</span>
-                    </a>
-                </li>
-                <li>
-                    <a href="{{ route('penjualan.index') }}"
-                        class="flex items-center p-2 transition duration-200 text-white hover:text-primary-700 rounded-lg hover:bg-gray-100">
-                        <i class="fa-solid fa-cart-shopping"></i>
-                        <span class="ml-3">Penjualan</span>
-                    </a>
-                </li>
-                <li>
-                    <a href="{{ route('pembelian.index') }}"
-                        class="flex items-center p-2 transition duration-200 text-white hover:text-primary-700 rounded-lg hover:bg-gray-100">
-                        <i class="fa-solid fa-dolly"></i>
-                        <span class="ml-3">Pembelian</span>
-                    </a>
-                </li>
-                <li>
-                    <a href="{{ route('laporan.index',['type'=>'jual']) }}"
-                        class="flex items-center p-2 transition duration-200 text-white hover:text-primary-700 rounded-lg hover:bg-gray-100">
-                        <i class="fa-solid fa-file-arrow-up"></i>
-                        <span class="ml-3">Laporan Penjualan</span>
-                    </a>
-                </li>
-                <li>
-                    <a href="{{ route('laporan.index',['type'=>'beli']) }}"
-                        class="flex items-center p-2 transition duration-200 text-white hover:text-primary-700 rounded-lg hover:bg-gray-100">
-                        <i class="fa-solid fa-file-arrow-down"></i>
-                        <span class="ml-3">Laporan Pembelian</span>
-                    </a>
-                </li>
-
-            </ul>
-        </div>
-    </aside>
+    <x-sidebar />
 
     <!-- MAIN CONTENT -->
     <div class="p-4 sm:ml-64">
@@ -209,31 +145,31 @@
     <script src="https://cdn.jsdelivr.net/npm/flowbite@3.1.2/dist/flowbite.min.js"></script>
     <script>
         // fungsi reusable format rupiah
-function formatRupiah(angka, prefix = 'Rp ') {
-// hapus semua karakter kecuali angka & koma
-let number_string = angka.replace(/[^,\d]/g, '').toString();
+        function formatRupiah(angka, prefix = 'Rp ') {
+            // hapus semua karakter kecuali angka & koma
+            let number_string = angka.replace(/[^,\d]/g, '').toString();
 
-// kalau kosong → balikin string kosong
-if (number_string.length === 0) {
-return '';
-}
+            // kalau kosong → balikin string kosong
+            if (number_string.length === 0) {
+                return '';
+            }
 
-// buang leading zero (contoh: 00012 → 12)
-number_string = number_string.replace(/^0+/, '');
+            // buang leading zero (contoh: 00012 → 12)
+            number_string = number_string.replace(/^0+/, '');
 
-let split = number_string.split(','),
-sisa = split[0].length % 3,
-rupiah = split[0].substr(0, sisa),
-ribuan = split[0].substr(sisa).match(/\d{3}/gi);
+            let split = number_string.split(','),
+                sisa = split[0].length % 3,
+                rupiah = split[0].substr(0, sisa),
+                ribuan = split[0].substr(sisa).match(/\d{3}/gi);
 
-if (ribuan) {
-let separator = sisa ? '.' : '';
-rupiah += separator + ribuan.join('.');
-}
+            if (ribuan) {
+                let separator = sisa ? '.' : '';
+                rupiah += separator + ribuan.join('.');
+            }
 
-rupiah = split[1] !== undefined ? rupiah + ',' + split[1] : rupiah;
-return prefix + rupiah;
-}
+            rupiah = split[1] !== undefined ? rupiah + ',' + split[1] : rupiah;
+            return prefix + rupiah;
+        }
     </script>
     @stack('scripts')
 </body>

@@ -119,6 +119,20 @@
 -   **Pencarian supplier**: by nama / alamat /telepon.
 -   **Tampil data**: by update_at desc.
 
+### 12. **Menu Akun Kas**
+
+-   Route: `/akunkas` → `<livewire:akun-kas.index />`
+-   **Tabel stok**: nama, tipe, saldo awal, timestamp.
+-   **Pencarian supplier**: by nama.
+-   **Tampil data**: by update_at desc.
+
+### 12. **Menu Kategori Kas**
+
+-   Route: `/kategorikas` → `<livewire:kategori-kas.index />`
+-   **Tabel stok**: nama, tipe, timestamp.
+-   **Pencarian supplier**: by nama.
+-   **Tampil data**: by update_at desc.
+
 ---
 
 ## 📊 Contoh Kasus Penjualan (FIFO + Pajak)

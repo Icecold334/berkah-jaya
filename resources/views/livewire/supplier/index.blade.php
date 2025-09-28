@@ -1,17 +1,12 @@
 <div class="">
     <div class="grid grid-cols-2 mb-6">
-        <div class="font-semibold text-3xl">Daftar Supplier</div>
+        <input type="text" wire:model.live="search" placeholder="Cari supplier..."
+            class="w-1/3 px-3 py-2 border rounded-md" />
         <div class="text-right">
             <button wire:click="openModal" class="bg-primary-600 text-white px-4 py-2 rounded-md hover:bg-primary-700">
                 + Tambah Supplier
             </button>
         </div>
-    </div>
-
-    {{-- Search --}}
-    <div class="mb-3">
-        <input type="text" wire:model.live="search" placeholder="Cari supplier..."
-            class="w-1/3 px-3 py-2 border rounded-md" />
     </div>
 
     {{-- Table --}}
