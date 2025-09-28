@@ -1,5 +1,4 @@
 <div class="p-4 space-y-6">
-    <h1 class="text-xl font-bold">📊 Dashboard</h1>
 
     <!-- Summary Cards -->
     <div class="grid grid-cols-1 md:grid-cols-4 gap-4">

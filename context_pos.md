@@ -11,12 +11,13 @@
 ## 🎯 Kebutuhan Utama Sistem
 
 -   Bisa handle **pembelian barang dari banyak supplier** (barang sama bisa beda harga & status pajak).
--   **Harga jual default** = harga beli tertinggi; kalau harga itu kena pajak → tambah 2%. Harga jual hanya auto-fill, editable saat penjualan.
+-   **Harga jual default** = harga beli tertinggi; kalau harga itu kena pajak → tambah sesuai nilai **presentase** di tabel `settings`.
 -   **Stok** dihitung dari tabel `pergerakan_stoks` (masuk/keluar), bukan disimpan di field statis.
 -   **Kas** = satu tabel terintegrasi, gabungan penjualan, pembelian, input manual, dan bisa multi akun kas (kas toko, bank, e-wallet).
 -   Ada **kategori kas masuk/keluar**, bisa dipilih saat input.
 -   **Audit log**: semua perubahan database (insert/update/delete) otomatis tercatat.
 -   **Retur & Stok Opname (SO)** → tidak pakai tabel baru untuk sekarang, cukup entri manual di `pergerakan_stoks` + `transaksi_kas`. (opsi tabel SO baru bisa ditambahkan nanti).
+-   **Settings**: tabel tambahan untuk konfigurasi global (contoh: `presentase`, `akun_penjualan`).
 
 ---
 
@@ -30,11 +31,12 @@
 6. **penjualans** (id, no_struk, customer_id, tanggal, total, kena_pajak, timestamps)
 7. **item_penjualans** (id, penjualan_id, produk_id, produk_supplier_id, harga_jual, qty, subtotal, kena_pajak, timestamps)
 8. **customers** (id, nama, telepon, alamat, timestamps) – _opsional_
-9. **akun_kas** (id, nama, tipe, saldo_awal, timestamps)
+9. **akun_kas** (id, nama, timestamps)
 10. **kategori_kas** (id, tipe, nama, timestamps)
 11. **transaksi_kas** (id, akun_kas_id, tanggal, tipe, kategori_id, jumlah, keterangan, sumber_type, sumber_id, timestamps)
-12. **pergerakan_stoks** (id, produk_id, tanggal, tipe, qty, sumber_type, sumber_id, keterangan, timestamps)
+12. **pergerakan_stoks** (id, produk_id, produk_supplier_id, tanggal, tipe, qty, sumber_type, sumber_id, kena_pajak, keterangan, timestamps)
 13. **audit_logs** (id, tabel, record_id, aksi, data_lama, data_baru, user_id, timestamps)
+14. **settings** (id, label, data, timestamps)
 
 ---
 
@@ -43,10 +45,12 @@
 ### 1. **Model & Relasi**
 
 -   Semua model & relasi sudah dibuat.
+-   `Produk` sudah support harga jual default dengan ambil `settings.presentase`.
 
 ### 2. **Seeder**
 
 -   Data contoh: produk, supplier, customer, akun kas, kategori kas, pembelian & penjualan → otomatis memengaruhi stok & kas.
+-   Setting default: `presentase=2`, `akun_penjualan=1`.
 
 ### 3. **Saldo & Audit Log**
 
@@ -67,7 +71,8 @@
 -   Stok ambil FIFO dari `pergerakan_stoks`.
 -   Bisa edit qty & harga jual.
 -   Validasi stok tidak minus.
--   Simpan → pecah invoice berdasarkan pajak, generate `no_struk`, simpan item, update stok, transaksi kas masuk otomatis.
+-   Simpan → pecah invoice berdasarkan pajak, generate `no_struk`, simpan item, update stok.
+-   Transaksi kas masuk otomatis → akun kas default diambil dari `settings.akun_penjualan`.
 
 ### 6. **Laporan Pembelian**
 
@@ -101,7 +106,7 @@
 ### 10. **Menu Stok**
 
 -   Route: `/stok` → `<livewire:stok.list-data />`
--   **Tabel stok**: nama barang, harga jual (default = harga beli max + 2% kalau pajak), stok pajak, stok non pajak, stok total.
+-   **Tabel stok**: nama barang, harga jual (default = harga beli max + presentase settings kalau pajak), stok pajak, stok non pajak, stok total.
 -   **Pencarian produk**: by nama / kode barang.
 -   **Modal detail per produk**: menampilkan riwayat pergerakan stok (masuk/keluar) descending, lengkap dengan:
     -   Tanggal
@@ -122,15 +127,15 @@
 ### 12. **Menu Akun Kas**
 
 -   Route: `/akunkas` → `<livewire:akun-kas.index />`
--   **Tabel stok**: nama, tipe, saldo awal, timestamp.
--   **Pencarian supplier**: by nama.
+-   **Tabel**: nama, timestamp.
+-   **Pencarian**: by nama.
 -   **Tampil data**: by update_at desc.
 
-### 12. **Menu Kategori Kas**
+### 13. **Menu Kategori Kas**
 
 -   Route: `/kategorikas` → `<livewire:kategori-kas.index />`
--   **Tabel stok**: nama, tipe, timestamp.
--   **Pencarian supplier**: by nama.
+-   **Tabel**: nama, tipe, timestamp.
+-   **Pencarian**: by nama.
 -   **Tampil data**: by update_at desc.
 
 ---

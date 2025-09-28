@@ -56,11 +56,19 @@ class Produk extends Model
     public function getHargaJualDefaultAttribute()
     {
         $harga = $this->harga_beli_tertinggi;
+
         $kenaPajak = $this->suppliers()
             ->where('produk_suppliers.harga_beli', $harga)
             ->value('produk_suppliers.kena_pajak');
+
         if ($harga && $kenaPajak) {
-            $harga += $harga * 0.02; // tambah 2%
+            // Ambil data setting presentase, default 2 kalau tidak ada
+            $presentase = Setting::getValue('presentase');
+
+            // Convert ke desimal
+            $presentase = $presentase / 100;
+
+            $harga += $harga * $presentase;
         }
 
         return $harga ?? 0;

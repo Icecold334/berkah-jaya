@@ -3,6 +3,7 @@
 namespace App\Livewire\Penjualan;
 
 use App\Models\Produk;
+use App\Models\Setting;
 use Livewire\Component;
 use App\Models\Penjualan;
 use App\Models\KategoriKas;
@@ -206,8 +207,10 @@ class Form extends Component
 
                 // 3. Transaksi kas masuk
                 $kategori = KategoriKas::where('nama', 'Penjualan')->first();
+                // 🔸 Ambil akun kas default penjualan dari settings
+                $akunKasId = Setting::getValue('akun_penjualan', 1); // default 1 kalau belum ada
                 TransaksiKas::create([
-                    'akun_kas_id' => 1, // TODO: pilih dari form
+                    'akun_kas_id' => $akunKasId,
                     'tanggal' => $this->tanggal ?? now(),
                     'tipe' => 'masuk',
                     'kategori_id' => $kategori?->id,

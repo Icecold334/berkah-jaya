@@ -41,18 +41,18 @@
                             <span class="block text-sm text-gray-500 truncate">name@flowbite.com</span>
                         </div>
                         <ul class="py-1 text-gray-700" aria-labelledby="dropdown-user">
-                            <li>
+                            {{-- <li>
                                 <a href="#" class="block py-2 px-4 text-sm hover:bg-gray-100">My Profile</a>
-                            </li>
+                            </li> --}}
                             <li>
                                 <a href="{{ route('setting.index') }}"
                                     class="block py-2 px-4 text-sm hover:bg-gray-100">
-                                    Account Settings
+                                    Pengaturan
                                 </a>
                             </li>
-                            <li>
+                            {{-- <li>
                                 <a href="#" class="block py-2 px-4 text-sm hover:bg-gray-100">Sign Out</a>
-                            </li>
+                            </li> --}}
                         </ul>
                     </div>
                 </div>
