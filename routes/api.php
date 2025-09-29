@@ -32,7 +32,6 @@ Route::post('/github-webhook', function (Request $request) {
     'php artisan route:clear',
     'php artisan view:clear',
   ];
-
   $process = Process::fromShellCommandline(implode(' && ', $commands));
   $process->setTimeout(300);
   $process->run();
