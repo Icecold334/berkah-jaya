@@ -27,7 +27,7 @@
                     <tr class="odd:bg-white even:bg-gray-50 border-b border-gray-200">
                         <td class="px-6 py-4">{{ $kategoriKas->firstItem() + $i }}</td>
                         <td class="px-6 py-4 text-left font-medium">{{ $kategori->nama }}</td>
-                        <td class="px-6 py-4 text-left capitalize">{{ $kategori->tipe }}sdsssd</td>
+                        <td class="px-6 py-4 text-left capitalize">{{ $kategori->tipe }}</td>
                         <td class="px-6 py-4">
                             <div class="flex items-center justify-center gap-2">
                                 <!-- Tombol Edit -->
