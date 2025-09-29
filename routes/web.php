@@ -85,7 +85,7 @@ Route::middleware(['auth'])->group(function () {
 
 
 Route::post('/github-webhook', function (\Illuminate\Http\Request $request) {
-    $secret = 'berkahjaya'; // samakan dengan secret di GitHub
+    $secret = 'berkahjaya'; // samakan dengan secret di GitHub repo
 
     // Validasi signature
     $signature = $request->header('X-Hub-Signature-256');
