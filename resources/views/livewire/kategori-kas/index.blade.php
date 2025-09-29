@@ -24,30 +24,30 @@
                 </thead>
                 <tbody>
                     @forelse($kategoriKas as $i => $kategori)
-                        <tr class="odd:bg-white even:bg-gray-50 border-b border-gray-200">
-                            <td class="px-6 py-4">{{ $kategoriKas->firstItem() + $i }}</td>
-                            <td class="px-6 py-4 text-left font-medium">{{ $kategori->nama }}</td>
-                            <td class="px-6 py-4 text-left capitalize">{{ $kategori->tipe }}</td>
-                            <td class="px-6 py-4">
-                                <div class="flex items-center justify-center gap-2">
-                                    <!-- Tombol Edit -->
-                                    <button wire:click="openModal({{ $kategori->id }})"
-                                        class="bg-info-100 text-info-800 text-sm font-medium p-2 rounded-sm hover:bg-info-200">
-                                        <i class="fa-solid fa-pen"></i>
-                                    </button>
+                    <tr class="odd:bg-white even:bg-gray-50 border-b border-gray-200">
+                        <td class="px-6 py-4">{{ $kategoriKas->firstItem() + $i }}</td>
+                        <td class="px-6 py-4 text-left font-medium">{{ $kategori->nama }}</td>
+                        <td class="px-6 py-4 text-left capitalize">{{ $kategori->tipe }}sdsd</td>
+                        <td class="px-6 py-4">
+                            <div class="flex items-center justify-center gap-2">
+                                <!-- Tombol Edit -->
+                                <button wire:click="openModal({{ $kategori->id }})"
+                                    class="bg-info-100 text-info-800 text-sm font-medium p-2 rounded-sm hover:bg-info-200">
+                                    <i class="fa-solid fa-pen"></i>
+                                </button>
 
-                                    <!-- Tombol Delete -->
-                                    <button wire:click="confirmDelete({{ $kategori->id }})"
-                                        class="bg-danger-100 text-danger-800 text-sm font-medium p-2 rounded-sm hover:bg-danger-200">
-                                        <i class="fa-solid fa-trash"></i>
-                                    </button>
-                                </div>
-                            </td>
-                        </tr>
+                                <!-- Tombol Delete -->
+                                <button wire:click="confirmDelete({{ $kategori->id }})"
+                                    class="bg-danger-100 text-danger-800 text-sm font-medium p-2 rounded-sm hover:bg-danger-200">
+                                    <i class="fa-solid fa-trash"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
                     @empty
-                        <tr>
-                            <td colspan="5" class="py-4">Tidak ada data kategori kas</td>
-                        </tr>
+                    <tr>
+                        <td colspan="5" class="py-4">Tidak ada data kategori kas</td>
+                    </tr>
                     @endforelse
                 </tbody>
             </table>
@@ -71,7 +71,7 @@
                             <label class="block text-sm">Nama</label>
                             <input type="text" wire:model="nama" class="w-full border rounded-md px-3 py-2">
                             @error('nama')
-                                <span class="text-danger-600 text-sm">{{ $message }}</span>
+                            <span class="text-danger-600 text-sm">{{ $message }}</span>
                             @enderror
                         </div>
                         <div class="mb-3">
@@ -82,7 +82,7 @@
                                 <option value="keluar">Keluar</option>
                             </select>
                             @error('tipe')
-                                <span class="text-danger-600 text-sm">{{ $message }}</span>
+                            <span class="text-danger-600 text-sm">{{ $message }}</span>
                             @enderror
                         </div>
 
