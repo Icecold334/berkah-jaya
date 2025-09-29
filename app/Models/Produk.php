@@ -70,7 +70,6 @@ class Produk extends Model
             return $harga;
         });
 
-        dd($hargaJualList);
 
         return $hargaJualList->max() ?? 0;
     }
