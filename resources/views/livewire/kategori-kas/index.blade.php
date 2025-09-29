@@ -28,7 +28,7 @@
                         <td class="px-6 py-4">{{ $kategoriKas->firstItem() + $i }}</td>
                         <td class="px-6 py-4 text-left font-medium">{{ $kategori->nama }}</td>
                         <td class="px-6 py-4 text-left capitalize">
-                            @if ($kategori->tipe)
+                            @if ($kategori->tipe == 'masuk')
                             <span class="bg-success-100 text-success-800 text-xs font-medium px-2.5 py-0.5 rounded">
                                 Masuk
                             </span>
