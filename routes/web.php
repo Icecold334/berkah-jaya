@@ -3,9 +3,11 @@
 use App\Models\TransaksiKas;
 use App\Livewire\Settings\Profile;
 use App\Livewire\Settings\Password;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\File;
 use App\Livewire\Settings\Appearance;
 use Illuminate\Support\Facades\Route;
-use Illuminate\Support\Facades\File;
+use Symfony\Component\Process\Process;
 
 Route::get('/debug', function () {
     $logDir = storage_path('logs');
@@ -79,6 +81,48 @@ Route::middleware(['auth'])->group(function () {
     Route::get('settings/profile', Profile::class)->name('settings.profile');
     Route::get('settings/password', Password::class)->name('settings.password');
     Route::get('settings/appearance', Appearance::class)->name('settings.appearance');
+});
+
+
+Route::post('/github-webhook', function (\Illuminate\Http\Request $request) {
+    $secret = 'berkahjaya'; // samakan dengan secret di GitHub
+
+    // Validasi signature
+    $signature = $request->header('X-Hub-Signature-256');
+    $hash = 'sha256=' . hash_hmac('sha256', $request->getContent(), $secret);
+
+    if (!hash_equals($hash, $signature)) {
+        Log::warning('Invalid webhook signature');
+        abort(403, 'Invalid signature');
+    }
+
+    // Jalankan perintah deploy
+    $commands = [
+        'cd /home/devnfa/public_html/berkah',
+        'git reset --hard',
+        'git clean -fd',
+        'git pull origin main',
+        'composer install --no-dev --optimize-autoloader',
+        'npm install',
+        'npm run build',
+        // 'php artisan migrate --force',
+        'php artisan config:clear',
+        'php artisan cache:clear',
+        'php artisan route:clear',
+        'php artisan view:clear',
+    ];
+
+    $process = new Process(implode(' && ', $commands));
+    $process->setTimeout(300); // 5 menit
+    $process->run();
+
+    if (!$process->isSuccessful()) {
+        Log::error('Deploy failed: ' . $process->getErrorOutput());
+        return response('Deploy failed', 500);
+    }
+
+    Log::info('Deploy success: ' . $process->getOutput());
+    return response('Deployed', 200);
 });
 
 require __DIR__ . '/auth.php';
