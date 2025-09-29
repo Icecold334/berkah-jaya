@@ -57,9 +57,11 @@ class Produk extends Model
     {
         $harga = $this->harga_beli_tertinggi;
 
+        // $kenaPajak = $this->suppliers()
+        //     ->where('produk_suppliers.harga_beli', $harga)
+        //     ->value('produk_suppliers.kena_pajak');
         $kenaPajak = $this->suppliers()
-            ->where('produk_suppliers.harga_beli', $harga)
-            ->value('produk_suppliers.kena_pajak');
+            ->where('produk_suppliers.harga_beli', $harga)->where('produk_suppliers.kena_pajak', 1)->count();
 
         if ($harga && $kenaPajak) {
             // Ambil data setting presentase, default 2 kalau tidak ada
