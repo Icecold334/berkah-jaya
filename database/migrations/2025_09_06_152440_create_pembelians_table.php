@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('pembelians', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('supplier_id')->constrained('suppliers');
+            $table->foreignId('supplier_id')->constrained('suppliers')->nullOnDelete();
             $table->string('no_faktur')->unique();
             $table->boolean('kena_pajak')->default(false);
             $table->date('tanggal');
