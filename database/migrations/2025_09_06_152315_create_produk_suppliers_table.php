@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::create('produk_suppliers', function (Blueprint $table) {
             $table->id();
             $table->foreignId('produk_id')->constrained('produks');
-            $table->foreignId('supplier_id')->constrained('suppliers')->nullOnDelete();
+            $table->foreignId('supplier_id')->nullable()->constrained('suppliers')->nullOnDelete();
             $table->float('harga_beli');
             $table->boolean('kena_pajak')->default(false);
             $table->date('tanggal_pembelian_terakhir')->nullable();
