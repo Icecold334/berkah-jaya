@@ -10,6 +10,7 @@ use App\Models\Pembelian;
 use Illuminate\Support\Str;
 use App\Models\TransaksiKas;
 use App\Models\ItemPembelian;
+use App\Models\KategoriKas;
 use App\Models\PergerakanStok;
 use App\Models\ProdukSupplier;
 use Illuminate\Support\Facades\DB;
@@ -121,12 +122,12 @@ class Form extends Component
                     'keterangan'         => 'Pembelian',
                 ]);
             }
-
+            $pembelianId = KategoriKas::where('nama', 'pembelian')->first()->id;
             TransaksiKas::create([
                 'akun_kas_id' => 1,
                 'tanggal'     => $this->tanggal,
                 'tipe'        => 'keluar',
-                'kategori_id' => 3, // pembelian
+                'kategori_id' => $pembelianId,
                 'jumlah'      => $pembelian->total,
                 'keterangan'  => 'Pembelian #' . $pembelian->no_faktur,
                 'sumber_type' => Pembelian::class,
