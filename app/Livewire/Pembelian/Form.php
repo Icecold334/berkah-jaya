@@ -102,10 +102,10 @@ class Form extends Component
                     [
                         'produk_id'   => $produk->id,
                         'supplier_id' => $this->supplier_id,
+                        'kena_pajak'                 => $item['kena_pajak'] ?? false,
                     ],
                     [
                         'harga_beli'                 => $item['harga_beli'],
-                        'kena_pajak'                 => $item['kena_pajak'] ?? false,
                         'tanggal_pembelian_terakhir' => $this->tanggal,
                     ]
                 );

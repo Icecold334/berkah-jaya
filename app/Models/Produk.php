@@ -55,24 +55,22 @@ class Produk extends Model
     // Harga jual default (aturan: harga beli tertinggi + pajak jika ada)
     public function getHargaJualDefaultAttribute()
     {
-        $harga = $this->harga_beli_tertinggi;
+        $presentase = Setting::getValue('presentase') ?? 0;
+        $presentase = $presentase / 100;
 
-        // $kenaPajak = $this->suppliers()
-        //     ->where('produk_suppliers.harga_beli', $harga)
-        //     ->value('produk_suppliers.kena_pajak');
-        $kenaPajak = $this->suppliers()
-            ->where('produk_suppliers.harga_beli', $harga)->where('produk_suppliers.kena_pajak', 1)->count();
+        // Ambil semua harga dari pivot
+        $hargaList = $this->suppliers()
+            ->get(['produk_suppliers.harga_beli', 'produk_suppliers.kena_pajak']);
 
-        if ($harga && $kenaPajak) {
-            // Ambil data setting presentase, default 2 kalau tidak ada
-            $presentase = Setting::getValue('presentase');
+        $hargaJualList = $hargaList->map(function ($row) use ($presentase) {
+            $harga = $row->pivot->harga_beli;
+            if ($row->pivot->kena_pajak) {
+                $harga += $harga * $presentase;
+            }
+            return $harga;
+        });
 
-            // Convert ke desimal
-            $presentase = $presentase / 100;
 
-            $harga += $harga * $presentase;
-        }
-
-        return $harga ?? 0;
+        return $hargaJualList->max() ?? 0;
     }
 }

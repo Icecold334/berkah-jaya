@@ -55,23 +55,15 @@ Route::get('/debug', function () {
 
     $html .= '</pre>';
 
-    // return $last3;
-
     return response($html);
 });
 
 
 Route::get('/', function () {
-    $saldo = TransaksiKas::selectRaw("
-    SUM(CASE WHEN tipe = 'masuk' THEN jumlah ELSE -jumlah END) as saldo
-")->value('saldo');
-    // return view('test', compact('saldo'));
     return redirect()->route('dashboard');
 })->name('home');
 
-// Route::view('dashboard', 'dashboard')
-//     ->middleware(['auth', 'verified'])
-//     ->name('dashboard');
+
 
 Route::middleware(['auth'])->group(function () {
     Route::redirect('settings', 'settings/profile');
@@ -80,6 +72,5 @@ Route::middleware(['auth'])->group(function () {
     Route::get('settings/password', Password::class)->name('settings.password');
     Route::get('settings/appearance', Appearance::class)->name('settings.appearance');
 });
-
 require __DIR__ . '/auth.php';
 require __DIR__ . '/app.php';
