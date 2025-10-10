@@ -21,7 +21,7 @@ class Pembelian extends Model
     // Pembelian milik 1 supplier
     public function supplier()
     {
-        return $this->belongsTo(Supplier::class, 'supplier_id');
+        return $this->belongsTo(Supplier::class, 'supplier_id')->withTrashed();
     }
 
     // Pembelian punya banyak item

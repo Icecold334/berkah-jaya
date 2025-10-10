@@ -35,10 +35,12 @@
                                 </button>
 
                                 <!-- Tombol Delete -->
+                                @if ($akun->id > 1)
                                 <button wire:click="confirmDelete({{ $akun->id }})"
                                     class="bg-danger-100 text-danger-800 text-sm font-medium p-2 rounded-sm hover:bg-danger-200">
                                     <i class="fa-solid fa-trash"></i>
                                 </button>
+                                @endif
                             </div>
                         </td>
                     </tr>
