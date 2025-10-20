@@ -6,6 +6,7 @@ use Livewire\Component;
 use App\Models\Supplier;
 use App\Models\Pembelian;
 use Livewire\WithPagination;
+use App\Services\RevisiService;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\Response;
 
@@ -25,6 +26,48 @@ class Laporan extends Component
     // Untuk detail pembelian
     public $detailPembelianId = null;
     public $alamat_id = null;
+    public $showRevisiModal = false;
+    public $editId = null;
+
+    public $form = [
+        'supplier_id' => '',
+        'tanggal' => '',
+        'total' => '',
+        'kena_pajak' => false,
+        'items' => [],
+        'akun_kas_id' => 1,
+        'kategori_id' => null,
+    ];
+    public function openRevisi($id)
+    {
+        $pb = Pembelian::with(['items'])->findOrFail($id);
+
+        $this->editId = $pb->id;
+        $this->showRevisiModal = true;
+
+        // isi form dengan data lama
+        $this->form['supplier_id'] = $pb->supplier_id;
+        $this->form['tanggal'] = $pb->tanggal->format('Y-m-d');
+        $this->form['total'] = $pb->total;
+        $this->form['kena_pajak'] = $pb->kena_pajak;
+        $this->form['items'] = $pb->items->map(fn($i) => [
+            'produk_id' => $i->produk_id,
+            'harga_beli' => $i->harga_beli,
+            'qty' => $i->qty,
+            'kena_pajak' => $i->kena_pajak,
+        ])->toArray();
+    }
+
+    public function simpanRevisi()
+    {
+        $pbLama = Pembelian::with('items')->findOrFail($this->editId);
+
+        RevisiService::revisiTransaksi('pembelian', $pbLama, $this->form);
+
+        $this->showRevisiModal = false;
+        $this->dispatch('notify', message: 'Revisi pembelian berhasil disimpan.');
+        $this->reset('form', 'editId');
+    }
     public function updatedSelectAll($value)
     {
         if ($value) {

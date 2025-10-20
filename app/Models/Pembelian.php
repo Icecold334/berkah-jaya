@@ -11,12 +11,34 @@ class Pembelian extends Model
     protected $table = 'pembelians';
     protected $fillable = ['no_faktur', 'supplier_id', 'tanggal', 'total', 'keterangan', 'kena_pajak',];
 
+    protected static function booted()
+    {
+        static::creating(function ($model) {
+            $model->status ??= 'aktif';
+            if (empty($model->no_faktur)) {
+                $model->no_faktur = self::generateNoFaktur();
+            }
+        });
+    }
+
+
     protected $casts = [
         'tanggal' => 'date',
         'kena_pajak' => 'boolean',
     ];
 
     /** 🔗 Relasi **/
+
+    public function revisiDari()
+    {
+        return $this->belongsTo(Pembelian::class, 'revisi_dari_id')->withTrashed();
+    }
+
+    public function revisiAnak()
+    {
+        return $this->hasOne(Pembelian::class, 'revisi_dari_id')->withTrashed();
+    }
+
 
     // Pembelian milik 1 supplier
     public function supplier()

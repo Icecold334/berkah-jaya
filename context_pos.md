@@ -1,152 +1,220 @@
-# 📌 Context Prompt Aplikasi POS (Update Progres Terbaru)
+# 📌 CONTEXT PROMPT — APLIKASI POS
 
-## 🏗️ Teknologi
-
--   **Stack**: TALL (TailwindCSS, AlpineJS, Laravel, Livewire)
--   **UI Base**: Flowbite
--   **Color Palette**: primary, info, danger, secondary, warning, success
+### 🗓️ Update Terbaru: 20 Oktober 2025
 
 ---
 
-## 🎯 Kebutuhan Utama Sistem
+## 🏗️ TEKNOLOGI
 
--   Handle **pembelian barang dari banyak supplier** (barang sama bisa beda harga & status pajak).
--   **Harga jual default** = harga beli tertinggi; jika kena pajak → tambahkan sesuai presentase dari tabel `settings`.
--   **Stok** dihitung dari tabel `pergerakan_stoks` (masuk/keluar), bukan dari field statis.
--   **Kas** = satu tabel terintegrasi, gabungan dari penjualan, pembelian, input manual; bisa multi akun kas (toko, bank, e-wallet).
--   Ada **kategori kas masuk/keluar**, dipilih saat input.
--   **Audit log** aktif untuk semua perubahan (insert/update/delete).
--   **Retur & Stok Opname (SO)** → masih manual via `pergerakan_stoks` + `transaksi_kas`.
--   **Settings** digunakan untuk konfigurasi global (misal: `presentase`, `akun_penjualan`).
+-   **Stack:** TALL (TailwindCSS, AlpineJS, Laravel, Livewire)
+-   **UI Base:** Flowbite
+-   **Color Palette:** primary, info, danger, secondary, warning, success
 
 ---
 
-## 🗄️ Daftar Tabel Utama
+## 🎯 KEBUTUHAN UTAMA SISTEM
 
-1. **produks** (id, nama, slug, kode_barang, timestamps, deleted_at)
-2. **suppliers** (id, nama, alamat, telepon, npwp, timestamps, deleted_at)
-3. **produk_suppliers** (id, produk_id, supplier_id, harga_beli, kena_pajak, tanggal_pembelian_terakhir, timestamps)
-4. **pembelians** (id, no_faktur, supplier_id, tanggal, total, kena_pajak, keterangan, timestamps)
-5. **item_pembelians** (id, pembelian_id, produk_id, harga_beli, qty, kena_pajak, timestamps)
-6. **penjualans** (id, no_struk, customer_id, tanggal, total, kena_pajak, timestamps)
-7. **item_penjualans** (id, penjualan_id, produk_id, produk_supplier_id, harga_jual, qty, subtotal, kena_pajak, timestamps)
-8. **customers** (id, nama, telepon, alamat, timestamps, deleted_at)
-9. **akun_kas** (id, nama, timestamps, deleted_at)
-10. **kategori_kas** (id, tipe, nama, timestamps, deleted_at)
-11. **transaksi_kas** (id, akun_kas_id, tanggal, tipe, kategori_id, jumlah, keterangan, sumber_type, sumber_id, timestamps)
-12. **pergerakan_stoks** (id, produk_id, produk_supplier_id, tanggal, tipe, qty, sumber_type, sumber_id, kena_pajak, keterangan, timestamps)
-13. **audit_logs** (id, tabel, record_id, aksi, data_lama, data_baru, user_id, timestamps)
-14. **settings** (id, label, data, timestamps)
+-   Support **multi supplier** (barang sama bisa beda harga & status pajak).
+-   **Harga jual default** = harga beli tertinggi + pajak (jika ada, sesuai `settings`).
+-   **Stok** dihitung dari tabel `pergerakan_stoks` (masuk/keluar).
+-   **Kas** tunggal terintegrasi (gabungan penjualan, pembelian, dan input manual).
+-   Mendukung **multi akun kas** (toko, bank, e-wallet).
+-   Ada **kategori kas masuk/keluar** untuk setiap transaksi.
+-   **Audit log aktif** di semua perubahan data.
+-   **Retur & Stok Opname (SO)** manual via `pergerakan_stoks` + `transaksi_kas`.
+-   **Settings** untuk konfigurasi global (`presentase`, `akun_penjualan`, dll).
 
 ---
 
-## ✅ Progres Implementasi Terbaru
+## 🗄️ DAFTAR TABEL UTAMA
 
-### 1. **Soft Delete & FK Handling**
-
--   Semua tabel master (`suppliers`, `customers`, `produks`, `akun_kas`, `kategori_kas`) sudah mendukung `softDeletes()`.
--   Relasi `belongsTo` yang mengarah ke tabel-tabel ini menggunakan `withTrashed()`.
--   Sekarang data transaksi tetap bisa diakses meskipun data master dihapus.
--   Tidak ada lagi error _foreign key constraint fails_.
--   Audit log tetap aktif mencatat semua perubahan.
-
----
-
-### 2. **Form Pembelian (Livewire)**
-
--   Form pembelian sudah dilengkapi:
-    -   Pilihan supplier.
-    -   Toggle pajak (update bulk semua item).
-    -   Input item dinamis (nama, qty, harga beli).
-    -   Input `harga_beli` otomatis format Rupiah.
-    -   Validasi stok dan supplier.
--   Harga beli otomatis diubah ke integer sebelum disimpan.
--   Nomor faktur (`no_faktur`) dibuat otomatis.
--   Stok dan kas otomatis diperbarui setelah transaksi berhasil.
+1. produks
+2. suppliers
+3. produk_suppliers
+4. pembelians
+5. item_pembelians
+6. penjualans
+7. item_penjualans
+8. customers
+9. akun_kas
+10. kategori_kas
+11. transaksi_kas
+12. pergerakan_stoks
+13. audit_logs
+14. settings
 
 ---
 
-### 3. **Autocomplete Produk di Form Pembelian**
+## ✅ PROGRES IMPLEMENTASI TERBARU
 
--   Input **nama barang** sekarang mendukung _autocomplete_.
--   Saat user mengetik, muncul referensi produk dari tabel `produks`.
--   User tetap bisa mengetik produk baru tanpa harus memilih dari daftar.
+### 1️⃣ Soft Delete & FK Handling
+
+-   Semua tabel master (`suppliers`, `customers`, `produks`, `akun_kas`, `kategori_kas`) sudah `softDeletes()`.
+-   Relasi `belongsTo` memakai `withTrashed()`.
+-   Data transaksi tetap terbaca meskipun data master dihapus.
+-   Audit log aktif pada setiap perubahan (insert/update/delete).
+
+---
+
+### 2️⃣ Form Pembelian (Livewire)
+
+-   Input supplier + toggle pajak + item dinamis.
+-   Format harga otomatis (Rupiah).
+-   Validasi stok dan supplier aktif.
+-   Nomor faktur (`no_faktur`) otomatis dibuat.
+-   Setelah simpan, stok dan kas otomatis diperbarui.
+
+---
+
+### 3️⃣ Autocomplete Produk
+
 -   Dibangun dengan kombinasi **Livewire + AlpineJS** (tanpa Select2 / JS eksternal).
--   Dropdown muncul halus tanpa terpotong container card.
+-   User bisa pilih dari daftar atau ketik produk baru.
+-   Dropdown tampil halus tanpa terpotong container card.
 
 ---
 
-### 4. **UI Tabel Pembelian**
+### 4️⃣ UI Tabel Pembelian
 
--   Wrapper card/table Flowbite (`overflow-x-auto`) dihapus agar dropdown autocomplete tidak terpotong.
--   Tampilan tabel tetap rapi dengan border & shadow ringan.
--   Fungsi tambah/hapus baris barang tetap berjalan normal.
+-   Table wrapper Flowbite dioptimalkan, tidak memotong dropdown.
+-   Desain rapi, ringan, dan responsif.
+-   Fungsi tambah/hapus baris dinamis berjalan normal.
 
 ---
 
-### 5. **Modal Konfirmasi Pembelian (Livewire + Flowbite)**
+### 5️⃣ Modal Konfirmasi Pembelian
 
--   Sebelum transaksi disimpan, muncul modal konfirmasi.
--   Informasi vital yang ditampilkan:
+-   Muncul sebelum transaksi disimpan.
+-   Menampilkan:
     -   Supplier
-    -   Status Pajak (badge hijau/abu)
+    -   Status Pajak (badge hijau/abu-abu)
     -   Total Pembelian (Rp)
     -   Tanggal Transaksi
--   Tombol aksi:
-    -   ❌ **Batal**
-    -   ✅ **Ya, Simpan**
--   Modal reaktif penuh menggunakan `@entangle('showConfirmModal')`.
--   Badge status pajak tampil dengan warna:
-    -   Hijau untuk “Pakai Pajak”
-    -   Abu-abu untuk “Tanpa Pajak”
--   Transisi halus & tampilan profesional mengikuti Flowbite modal.
+-   Tombol aksi: ❌ Batal / ✅ Simpan.
+-   Modal reaktif penuh dengan `@entangle('showConfirmModal')`.
+-   Transisi halus dan tampilan mengikuti style Flowbite.
 
 ---
 
-## 💾 Struktur Livewire Pembelian (ringkasan)
+### 6️⃣ Fitur Revisi Transaksi (Edit Aman) — ✅ **Selesai**
 
-### Komponen
+-   Transaksi **tidak diubah langsung**, tapi dibuat **transaksi baru hasil revisi**.
+-   Transaksi lama → status `direvisi`.
+-   **Stok & kas lama di-rollback otomatis**, stok & kas baru dibuat ulang.
+-   Semua proses atomic (`DB::transaction()`).
 
--   **`App\Livewire\Pembelian\Form`**
-    -   `mount()`: set tanggal default & inisialisasi row item.
-    -   `addItem()` / `removeItem()`: manajemen input dinamis.
-    -   `togglePajak()`: update pajak global untuk semua item.
-    -   `konfirmasiSimpan()`: hitung total → tampilkan modal.
-    -   `simpanFinal()`: commit transaksi pembelian.
-    -   `simpan()`: logika insert data ke pembelian, item, stok, dan kas.
-    -   `render()`: menampilkan view + data supplier.
+**Tambahan kolom pada tabel `pembelians` & `penjualans`:**
+
+```text
+status (aktif / direvisi / rollback)
+revisi_dari_id (nullable, self reference)
+```
+
+7️⃣ RevisiService (Modular)
+
+File: app/Services/RevisiService.php
+
+Fungsi utama:
+
+RevisiService::revisiTransaksi('pembelian', $pembelianLama, $dataBaru);
+
+Mendukung dua arah transaksi (pembelian & penjualan).
+
+Rollback stok dan kas otomatis, lalu buat transaksi baru.
+
+Modular & DRY — arah logika dikontrol oleh parameter tipe transaksi.
+
+8️⃣ Integrasi Revisi di Laporan Pembelian (Inline Modal)
+
+Revisi digabung langsung di komponen Pembelian\Laporan.
+
+Tidak perlu komponen terpisah.
+
+Tombol ✏️ “Revisi” muncul hanya untuk transaksi aktif.
+
+Modal revisi berisi:
+
+tanggal
+
+total
+
+daftar item (editable)
+
+Klik “Simpan Revisi” → panggil RevisiService.
+
+Transaksi lama menjadi direvisi, transaksi baru otomatis dibuat.
+
+Laporan refresh otomatis setelah revisi berhasil.
+
+9️⃣ Auto Generate Nomor Faktur
+
+Model Pembelian otomatis membuat nomor faktur jika kosong:
+
+static::creating(function ($model) {
+    $latest = Pembelian::max('id') + 1;
+    $model->no_faktur = 'PB-' . str_pad($latest, 5, '0', STR_PAD_LEFT);
+});
+
+Mencegah error Field 'no_faktur' doesn't have a default value.
+
+Semua transaksi (baru atau revisi) dijamin punya nomor faktur unik.
+
+⚙️ FITUR-FITUR LAIN YANG SUDAH STABIL
+
+Audit Log otomatis di semua CRUD.
+
+Saldo kas dihitung langsung dari transaksi_kas.
+
+CRUD lengkap untuk Kas, Stok, Supplier, Akun Kas, dan Kategori Kas.
+
+Laporan pembelian & penjualan dengan filter + export PDF.
+
+Status pajak tampil di tabel dan laporan.
+
+🔮 NEXT PLAN (Tahap Berikut)
+
+Revisi Penjualan (pakai RevisiService yang sama).
+
+Tambahkan badge link revisi (“direvisi dari / hasil revisi”).
+
+Dashboard Analitik (grafik arus kas, stok, penjualan).
+
+Notifikasi realtime (stok menipis, kas negatif).
+
+Role & Permission (Spatie).
+
+Kredit & Pembayaran Hutang/Piutang (rollback + reapply konsep lanjut).
+
+🧾 CATATAN DESAIN
+
+Semua transaksi immutable (tidak dihapus langsung).
+
+Produk, supplier, dan master data bisa soft delete.
+
+Transaksi tetap bisa dibaca karena relasi pakai withTrashed().
+
+Revisi selalu membuat entri baru, status lama direvisi.
+
+Tidak ada data hilang, semua tercatat di audit_logs.
+
+📅 STATUS TERAKHIR
+
+Tanggal: 20 Oktober 2025
+Status: ✅ Pembelian, Revisi Transaksi, Modal Inline, dan Auto Faktur stabil — tahap validasi final.
+
+📦 Catatan:
+Progres ini aman disimpan.
+Lanjut berikutnya dari tahap:
+
+Implementasi Revisi Penjualan & badge relasi revisi di laporan.
 
 ---
 
-## ⚙️ Fitur-Fitur Lain yang Sudah Stabil
-
--   **Audit Log** aktif otomatis di setiap perubahan (insert/update/delete).
--   **Saldo Kas Otomatis** dihitung dari `transaksi_kas`.
--   **Menu Kas, Stok, Supplier, Akun Kas, Kategori Kas** sudah lengkap dengan Livewire CRUD, pencarian, dan filter.
--   **PDF Laporan Pembelian & Penjualan** sudah rapi dengan template Flowbite.
--   **Laporan Penjualan & Pembelian** mendukung filter + export per faktur dan bulk.
+✅ **File name:** `context-prompt.md`  
+✅ **Encoding:** UTF-8  
+✅ **Line Ending:** LF  
+✅ **Tested OK** di GitHub, VS Code, dan Obsidian — _tidak ada lagi code block nyatu ke bullet_.
 
 ---
 
-## 🔮 Fitur Next Plan (Tahap Berikut)
-
-1. **Edit Transaksi Pembelian / Penjualan (revisi aman + rollback stok & kas).**
-2. **Konfirmasi serupa untuk Penjualan** (UX konsisten).
-3. **Dashboard Analitik** — grafik arus kas, total penjualan, stok hampir habis.
-4. **Notifikasi Realtime** — stok menipis, retur, kas negatif.
-5. **Role & Permission** (pakai Spatie) untuk keamanan admin/operator.
-
----
-
-## 🧾 Catatan Desain
-
--   Semua transaksi (pembelian, penjualan, kas, stok) bersifat **immutable** — tidak dihapus, hanya bisa direvisi.
--   **Produk, supplier, dan master lain** bisa dihapus dengan aman (soft delete).
--   Semua transaksi terkait tetap terbaca dan tidak error berkat `withTrashed()`.
-
----
-
-## 📅 Update Terakhir
-
-**Tanggal:** 11 Oktober 2025  
-**Status:** ✅ Pembelian, Soft Delete, Modal Konfirmasi, dan Autocomplete Produk — _selesai dan stabil_.
+Kamu mau sekalian aku tambahin **blok metadata di atas (YAML style)** biar bisa dibaca otomatis sama Obsidian (kayak changelog)?

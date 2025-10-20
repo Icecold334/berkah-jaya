@@ -10,12 +10,31 @@ class Penjualan extends Model
     protected $table = 'penjualans';
     protected $fillable = ['customer_id', 'tanggal', 'total', 'no_struk', 'kena_pajak'];
 
+    protected static function booted()
+    {
+        static::creating(function ($model) {
+            $model->status ??= 'aktif';
+        });
+    }
+
+
     protected $casts = [
         'tanggal' => 'date',
         'kena_pajak' => 'boolean',
     ];
 
     /** 🔗 Relasi **/
+
+    public function revisiDari()
+    {
+        return $this->belongsTo(Penjualan::class, 'revisi_dari_id')->withTrashed();
+    }
+
+    public function revisiAnak()
+    {
+        return $this->hasOne(Penjualan::class, 'revisi_dari_id')->withTrashed();
+    }
+
 
     // Penjualan milik 1 customer (opsional)
     public function customer()
