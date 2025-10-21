@@ -58,7 +58,6 @@ class RevisiService
 
       // 3️⃣ tandai transaksi lama direvisi
       $transaksiLama->update(['status' => 'direvisi']);
-
       // 4️⃣ buat transaksi baru
       $kolomUtama = $isPembelian ? 'supplier_id' : 'customer_id';
       $transaksiBaru = $Model::create([

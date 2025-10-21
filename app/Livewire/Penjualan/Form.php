@@ -173,7 +173,6 @@ class Form extends Component
 
                 // 1. Buat Penjualan
                 $penjualan = Penjualan::create([
-                    'no_struk' => $this->generateNoStruk(),
                     'customer_id' => $this->customer_id,
                     'tanggal' => $this->tanggal ?? now(),
                     'total' => collect($items)->sum('subtotal'),
@@ -188,7 +187,7 @@ class Form extends Component
                         'produk_supplier_id' => $item['produk_supplier_id'],
                         'harga_jual' => $item['harga'],
                         'qty' => $item['qty'],
-                        'subtotal' => $item['subtotal'],
+                        // 'subtotal' => $item['subtotal'],
                         'kena_pajak' => $tipe === 'pajak',
                     ]);
 

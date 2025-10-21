@@ -2,18 +2,22 @@
 
 namespace App\Models;
 
+use Illuminate\Support\Facades\DB;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\MorphOne;
 
 class Penjualan extends Model
 {
     protected $table = 'penjualans';
-    protected $fillable = ['customer_id', 'tanggal', 'total', 'no_struk', 'kena_pajak'];
+    protected $fillable = ['customer_id', 'tanggal', 'total', 'no_struk', 'kena_pajak', 'status'];
 
     protected static function booted()
     {
         static::creating(function ($model) {
             $model->status ??= 'aktif';
+            if (empty($model->no_struk)) {
+                $model->no_struk = self::generateNoStruk();
+            }
         });
     }
 
@@ -67,7 +71,23 @@ class Penjualan extends Model
     // Hitung ulang total dari item
     public function hitungTotal()
     {
-        $this->total = $this->items()->sum('subtotal');
+        $this->total = $this->items()->sum(DB::raw('harga_jual * qty'));
         $this->save();
+    }
+
+
+    public static function generateNoStruk()
+    {
+        $prefix = 'INV' . now()->format('Ymd');
+
+        $last = self::where('no_struk', 'like', $prefix . '%')
+            ->orderBy('no_struk', 'desc')
+            ->first();
+
+        $number = $last
+            ? intval(substr($last->no_struk, -3)) + 1
+            : 1;
+
+        return $prefix . str_pad($number, 3, '0', STR_PAD_LEFT);
     }
 }

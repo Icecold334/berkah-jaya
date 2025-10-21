@@ -225,49 +225,97 @@
 
     @if ($showRevisiModal)
     <div class="fixed inset-0 bg-gray-900/50 flex items-center justify-center z-50">
-        <div class="bg-white rounded-lg shadow-lg w-2/3">
-            <div class="flex justify-between items-center border-b px-6 py-3">
-                <h2 class="font-bold text-lg">Revisi Pembelian</h2>
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-3xl mx-4">
+            {{-- 🔹 HEADER --}}
+            <div class="flex justify-between items-center border-b px-6 py-4">
+                <h2 class="font-bold text-lg text-gray-800">
+                    ✏️ Revisi Transaksi Pembelian
+                    <span class="text-primary-600 font-semibold">
+                        #{{ $editId }}
+                    </span>
+                </h2>
                 <button wire:click="$set('showRevisiModal', false)"
-                    class="text-gray-500 hover:text-gray-700">&times;</button>
+                    class="text-gray-400 hover:text-gray-700 transition">
+                    <i class="fa-solid fa-times text-lg"></i>
+                </button>
             </div>
 
-            <div class="p-6 space-y-4 text-sm">
-
-                <div class="grid grid-cols-2 gap-4">
+            {{-- 🔹 BODY --}}
+            <div class="p-6 space-y-5 text-sm text-gray-800">
+                {{-- INFO SUPPLIER & TANGGAL --}}
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                        <label class="font-medium text-gray-600">Tanggal</label>
-                        <input type="date" wire:model="form.tanggal"
-                            class="w-full border-gray-300 rounded text-sm focus:ring-primary-500 focus:border-primary-500">
+                        <label class="block text-gray-600 font-medium mb-1">Supplier</label>
+                        <input type="text" value="{{ \App\Models\Supplier::find($form['supplier_id'])->nama ?? '-' }}"
+                            class="w-full bg-gray-50 border border-gray-300 rounded text-sm px-3 py-2" readonly>
                     </div>
 
                     <div>
-                        <label class="font-medium text-gray-600">Total</label>
-                        <input type="number" wire:model="form.total"
-                            class="w-full border-gray-300 rounded text-sm focus:ring-primary-500 focus:border-primary-500">
+                        <label class="block text-gray-600 font-medium mb-1">Tanggal Transaksi</label>
+                        <input type="date" wire:model="form.tanggal"
+                            class="w-full border-gray-300 rounded text-sm px-3 py-2 focus:ring-primary-500 focus:border-primary-500">
                     </div>
                 </div>
 
+                {{-- DAFTAR ITEM --}}
                 <div>
-                    <label class="font-medium text-gray-600 mb-2 block">Daftar Item</label>
-                    <div class="border rounded p-2 space-y-1 max-h-60 overflow-y-auto">
+                    <label class="block text-gray-600 font-medium mb-2">Daftar Item</label>
+
+                    <div class="border border-gray-200 rounded-md divide-y max-h-72 overflow-y-auto">
+                        <div class="grid grid-cols-12 bg-gray-50 text-xs font-semibold text-gray-600 px-3 py-2">
+                            <div class="col-span-5 text-left">Produk</div>
+                            <div class="col-span-2 text-right">Qty</div>
+                            <div class="col-span-3 text-right">Harga</div>
+                            <div class="col-span-2 text-right">Subtotal</div>
+                        </div>
+
                         @foreach ($form['items'] as $index => $item)
-                        <div class="grid grid-cols-3 gap-2">
-                            <input type="text" wire:model="form.items.{{ $index }}.produk_id"
-                                class="border rounded px-2 text-sm" placeholder="Produk ID">
-                            <input type="number" wire:model="form.items.{{ $index }}.qty"
-                                class="border rounded px-2 text-sm" placeholder="Qty">
-                            <input type="number" wire:model="form.items.{{ $index }}.harga_beli"
-                                class="border rounded px-2 text-sm" placeholder="Harga">
+                        <div class="grid grid-cols-12 gap-2 items-center px-3 py-2">
+                            <div class="col-span-5">
+                                <input type="text"
+                                    value="{{ \App\Models\Produk::find($item['produk_id'])->nama ?? 'Produk #' . $item['produk_id'] }}"
+                                    class="w-full border border-gray-200 bg-gray-50 rounded px-2 py-1 text-sm" readonly>
+                            </div>
+
+                            <div class="col-span-2">
+                                <input type="number" wire:model.live="form.items.{{ $index }}.qty"
+                                    class="w-full border-gray-300 rounded text-sm text-right px-2 py-1 focus:ring-primary-500 focus:border-primary-500"
+                                    placeholder="Qty">
+                            </div>
+
+                            <div class="col-span-3">
+                                <input type="number" wire:model.live="form.items.{{ $index }}.harga_beli"
+                                    class="w-full border-gray-300 rounded text-sm text-right px-2 py-1 focus:ring-primary-500 focus:border-primary-500"
+                                    placeholder="Harga">
+                            </div>
+
+                            <div class="col-span-2 text-right text-gray-700 font-medium">
+                                Rp {{ number_format(($item['qty'] ?? 0) * ($item['harga_beli'] ?? 0), 0, ',', '.') }}
+                            </div>
                         </div>
                         @endforeach
                     </div>
+
+                    {{-- TOTAL REVISI --}}
+                    <div class="flex justify-between items-center mt-4 border-t pt-2 text-sm font-medium">
+                        <span class="text-gray-700">Total Revisi</span>
+                        <span class="text-primary-700 text-base font-semibold">
+                            Rp {{ number_format(collect($form['items'])->sum(fn($i) => ($i['qty'] ?? 0) *
+                            ($i['harga_beli']
+                            ?? 0)), 0, ',', '.') }}
+                        </span>
+                    </div>
                 </div>
             </div>
 
-            <div class="flex justify-end border-t px-6 py-3">
+            {{-- 🔹 FOOTER --}}
+            <div class="flex justify-end items-center border-t bg-gray-50 px-6 py-3 gap-3">
+                <button wire:click="$set('showRevisiModal', false)"
+                    class="px-4 py-2 rounded bg-gray-200 hover:bg-gray-300 text-gray-700 text-sm font-medium">
+                    Batal
+                </button>
                 <button wire:click="simpanRevisi"
-                    class="bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium px-4 py-2 rounded">
+                    class="px-5 py-2 rounded bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium shadow">
                     Simpan Revisi
                 </button>
             </div>

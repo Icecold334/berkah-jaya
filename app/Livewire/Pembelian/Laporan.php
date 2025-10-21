@@ -38,6 +38,14 @@ class Laporan extends Component
         'akun_kas_id' => 1,
         'kategori_id' => null,
     ];
+
+    // 🔄 Auto update total saat item berubah
+    public function updatedForm()
+    {
+        $this->form['total'] = collect($this->form['items'])
+            ->sum(fn($i) => ($i['qty'] ?? 0) * ($i['harga_beli'] ?? 0));
+    }
+
     public function openRevisi($id)
     {
         $pb = Pembelian::with(['items'])->findOrFail($id);
@@ -61,7 +69,6 @@ class Laporan extends Component
     public function simpanRevisi()
     {
         $pbLama = Pembelian::with('items')->findOrFail($this->editId);
-
         RevisiService::revisiTransaksi('pembelian', $pbLama, $this->form);
 
         $this->showRevisiModal = false;
@@ -184,29 +191,38 @@ class Laporan extends Component
 
     public function render()
     {
+        // 🔎 Query dasar untuk pembelian aktif / hasil revisi saja
         $baseQuery = Pembelian::with('supplier')
+            ->whereIn('status', ['aktif', 'revisi']) // tampilkan hanya transaksi aktif & hasil revisi
             ->when($this->tanggal_awal, fn($q) => $q->whereDate('tanggal', '>=', $this->tanggal_awal))
             ->when($this->tanggal_akhir, fn($q) => $q->whereDate('tanggal', '<=', $this->tanggal_akhir))
             ->when($this->supplier_id, fn($q) => $q->where('supplier_id', $this->supplier_id))
             ->when($this->filter_pajak !== '', fn($q) => $q->where('kena_pajak', $this->filter_pajak))
-            ->when($this->search_no_faktur, fn($q) => $q->where('no_faktur', 'like', '%' . $this->search_no_faktur . '%')); // ✅ filter baru
+            ->when($this->search_no_faktur, fn($q) => $q->where('no_faktur', 'like', "%{$this->search_no_faktur}%"))
+            ->orderByDesc('tanggal')
+            ->orderByDesc('id');
 
+        // 🔹 Pagination 10 per halaman
+        $pembelians = $baseQuery->paginate(10);
 
-        $pembelians = (clone $baseQuery)
-            ->orderBy('id', 'desc')
-            ->paginate(10);
-
+        // 🔹 Hitung total dari query yang sama (tanpa pagination)
         $total = (clone $baseQuery)->sum('total');
 
-        $suppliers = Supplier::all();
+        // 🔹 Ambil data master supplier
+        $suppliers = Supplier::orderBy('nama')->get();
+
+        // 🔹 Detail pembelian (jika sedang dibuka)
+        $detail = null;
+        if ($this->detailPembelianId) {
+            $detail = Pembelian::with(['items.produk', 'supplier'])
+                ->find($this->detailPembelianId);
+        }
 
         return view('livewire.pembelian.laporan', [
             'pembelians' => $pembelians,
             'suppliers'  => $suppliers,
             'total'      => $total,
-            'detail'     => $this->detailPembelianId
-                ? Pembelian::with(['items.produk', 'supplier'])->find($this->detailPembelianId)
-                : null,
+            'detail'     => $detail,
         ]);
     }
 }

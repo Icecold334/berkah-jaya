@@ -149,7 +149,6 @@ class DatabaseSeeder extends Seeder
             // // === 7. Contoh Penjualan ===
             $penjualan = Penjualan::create([
                 'customer_id' => $customer1->id,
-                'no_struk' => fake()->numerify('NNN-###-###-###'),
                 'tanggal' => Carbon::now()->subDays(1),
                 'total' => 0 // akan dihitung ulang
             ]);
@@ -159,7 +158,7 @@ class DatabaseSeeder extends Seeder
                 'produk_id' => $produkA->id,
                 'harga_jual' => 67000, // contoh (harga beli 65k + 2%)
                 'qty' => 2,
-                'subtotal' => 134000
+                // 'subtotal' => 134000
             ]);
 
             $penjualan->hitungTotal();
