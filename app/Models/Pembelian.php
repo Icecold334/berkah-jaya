@@ -73,6 +73,12 @@ class Pembelian extends Model
         $this->save();
     }
 
+    public function hutang()
+    {
+        return $this->hasOne(Hutang::class);
+    }
+
+
     public static function generateNoFaktur()
     {
         $prefix = 'IN' . now()->format('Ymd');

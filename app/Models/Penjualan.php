@@ -64,7 +64,10 @@ class Penjualan extends Model
         return $this->morphMany(PergerakanStok::class, 'sumber');
     }
 
-
+    public function piutang()
+    {
+        return $this->hasOne(Piutang::class);
+    }
 
     /** ⚙️ Helper Method **/
 

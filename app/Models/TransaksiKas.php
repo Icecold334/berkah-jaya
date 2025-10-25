@@ -60,4 +60,14 @@ class TransaksiKas extends Model
     {
         return 'Rp ' . number_format($this->jumlah, 0, ',', '.');
     }
+
+    public function pembayaranPiutang()
+    {
+        return $this->hasOne(PembayaranPiutang::class);
+    }
+
+    public function pembayaranHutang()
+    {
+        return $this->hasOne(PembayaranHutang::class);
+    }
 }

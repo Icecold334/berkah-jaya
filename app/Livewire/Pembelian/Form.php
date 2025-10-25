@@ -3,14 +3,15 @@
 namespace App\Livewire\Pembelian;
 
 use Carbon\Carbon;
+use App\Models\Hutang;
 use App\Models\Produk;
 use Livewire\Component;
 use App\Models\Supplier;
 use App\Models\Pembelian;
+use App\Models\KategoriKas;
 use Illuminate\Support\Str;
 use App\Models\TransaksiKas;
 use App\Models\ItemPembelian;
-use App\Models\KategoriKas;
 use App\Models\PergerakanStok;
 use App\Models\ProdukSupplier;
 use Illuminate\Support\Facades\DB;
@@ -29,24 +30,60 @@ class Form extends Component
     // Tambahkan di dalam class Form
 
     public $searchResults = []; // untuk simpan hasil pencarian produk
+
+    public $showMetodeModal = false;
+    public $showKreditModal = false;
+    public $metodeBayar = 'cash'; // default
+    public $jatuh_tempo;
+    public $keterangan_kredit;
+
     public function konfirmasiSimpan()
     {
-        // hitung total & status pajak sebelum modal muncul
+        $this->resetErrorBag();
+
+        // Hitung total sebelum modal metode muncul
         $this->totalPreview = collect($this->items)->sum(function ($i) {
-            $harga = preg_replace('/[^0-9]/', '', $i['harga_beli']); // hapus semua non-angka
+            $harga = preg_replace('/[^0-9]/', '', $i['harga_beli']);
             $qty   = (int) $i['qty'];
             return ((int) $harga) * $qty;
         });
 
-        $this->showConfirmModal = true;
+        // ✅ Pastikan semua modal tertutup dulu
+        $this->showConfirmModal = false;
+        $this->showKreditModal = false;
+
+        // ✅ Baru buka modal metode pembayaran
+        $this->showMetodeModal = true;
+    }
+
+    public function pilihMetode($metode)
+    {
+        $this->metodeBayar = $metode;
+
+        // Tutup modal metode pembayaran
+        $this->showMetodeModal = false;
+        $this->showConfirmModal = false;
+        $this->showKreditModal = false;
+
+        // ✅ Buka modal sesuai pilihan user
+        if ($metode === 'cash') {
+            $this->showConfirmModal = true;
+        } else {
+            $this->showKreditModal = true;
+        }
     }
 
     public function simpanFinal()
     {
-        // panggil logika simpan asli
+        // Jalankan simpan
         $this->simpan();
+
+        // Tutup semua modal setelah simpan
         $this->showConfirmModal = false;
+        $this->showMetodeModal = false;
+        $this->showKreditModal = false;
     }
+
     public function updatedItems($value, $key)
     {
         // deteksi field mana yang berubah, misal items.0.nama
@@ -109,7 +146,8 @@ class Form extends Component
     {
         foreach ($this->items as $i => $item) {
             if (isset($item['harga_beli'])) {
-                $this->items[$i]['harga_beli'] = preg_replace('/[^0-9]/', '', $item['harga_beli']);
+                // Pastikan hanya angka
+                $this->items[$i]['harga_beli'] = (int) preg_replace('/[^0-9]/', '', $item['harga_beli']);
             }
         }
 
@@ -117,19 +155,25 @@ class Form extends Component
             'supplier_id' => 'required|exists:suppliers,id',
         ]);
 
-        DB::transaction(function () {
+        DB::beginTransaction();
+
+        try {
             $noFaktur = Pembelian::generateNoFaktur();
 
+            // Hitung total pembelian
+            $totalPembelian = collect($this->items)->sum(fn($i) => $i['harga_beli'] * $i['qty']);
+
+            // Buat record pembelian utama
             $pembelian = Pembelian::create([
                 'no_faktur'   => $noFaktur,
                 'supplier_id' => $this->supplier_id,
                 'tanggal'     => $this->tanggal,
-                // ✅ kalau ada item kena pajak, otomatis pembelian kena pajak
                 'kena_pajak'  => collect($this->items)->contains(fn($i) => $i['kena_pajak']),
-                'total'       => collect($this->items)->sum(fn($i) => $i['harga_beli'] * $i['qty']),
+                'total'       => $totalPembelian,
                 'keterangan'  => $this->keterangan,
             ]);
 
+            // Simpan detail item & stok
             foreach ($this->items as $item) {
                 $produk = Produk::firstOrCreate(
                     ['slug' => Str::slug($item['nama'])],
@@ -151,7 +195,7 @@ class Form extends Component
                     [
                         'produk_id'   => $produk->id,
                         'supplier_id' => $this->supplier_id,
-                        'kena_pajak'                 => $item['kena_pajak'] ?? false,
+                        'kena_pajak'  => $item['kena_pajak'] ?? false,
                     ],
                     [
                         'harga_beli'                 => $item['harga_beli'],
@@ -168,29 +212,57 @@ class Form extends Component
                     'kena_pajak'         => $item['kena_pajak'] ?? false,
                     'sumber_type'        => Pembelian::class,
                     'sumber_id'          => $pembelian->id,
-                    'keterangan'         => 'Pembelian',
+                    'keterangan'         => 'Pembelian Barang',
                 ]);
             }
-            $pembelianId = KategoriKas::where('nama', 'pembelian')->first()->id;
-            TransaksiKas::create([
-                'akun_kas_id' => 1,
-                'tanggal'     => $this->tanggal,
-                'tipe'        => 'keluar',
-                'kategori_id' => $pembelianId,
-                'jumlah'      => $pembelian->total,
-                'keterangan'  => 'Pembelian #' . $pembelian->no_faktur,
-                'sumber_type' => Pembelian::class,
-                'sumber_id'   => $pembelian->id,
-            ]);
-        });
 
-        $this->resetForm();
+            // ==============================
+            // CASE 1: PEMBAYARAN TUNAI (CASH)
+            // ==============================
+            if ($this->metodeBayar === 'cash') {
+                $kategoriPembelian = KategoriKas::where('nama', 'pembelian')->first();
 
-        return $this->dispatch(
-            'toast',
-            type: 'success',
-            message: 'Pembelian berhasil disimpan!'
-        );
+                TransaksiKas::create([
+                    'akun_kas_id' => 1, // pastikan akun kas ada di tabel
+                    'tanggal'     => $this->tanggal,
+                    'tipe'        => 'keluar',
+                    'kategori_id' => $kategoriPembelian?->id,
+                    'jumlah'      => $pembelian->total,
+                    'keterangan'  => 'Pembelian #' . $pembelian->no_faktur,
+                    'sumber_type' => Pembelian::class,
+                    'sumber_id'   => $pembelian->id,
+                ]);
+            }
+
+            // ==============================
+            // CASE 2: PEMBAYARAN KREDIT
+            // ==============================
+            if ($this->metodeBayar === 'kredit') {
+                Hutang::create([
+                    'pembelian_id'  => $pembelian->id,
+                    'supplier_id'   => $this->supplier_id,
+                    'total_tagihan' => $pembelian->total,
+                    'total_terbayar' => 0,
+                    'sisa_tagihan'   => $pembelian->total,
+                    'jatuh_tempo'    => $this->jatuh_tempo ?: now()->addDays(30),
+                    'status'         => 'belum_lunas',
+                    'keterangan'     => $this->keterangan_kredit,
+                ]);
+            }
+
+            DB::commit();
+
+            $this->resetForm();
+
+            $this->dispatch('toast', type: 'success', message: 'Pembelian berhasil disimpan!');
+        } catch (\Exception $e) {
+            DB::rollBack();
+
+            // Debug error kalau ada masalah
+            report($e);
+
+            $this->dispatch('toast', type: 'error', message: 'Terjadi kesalahan: ' . $e->getMessage());
+        }
     }
 
     private function resetForm()
