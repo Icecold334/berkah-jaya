@@ -6,6 +6,7 @@ use Livewire\Component;
 use App\Models\Supplier;
 use App\Models\Pembelian;
 use Livewire\WithPagination;
+use App\Services\RevisiService;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\Response;
 
@@ -25,6 +26,55 @@ class Laporan extends Component
     // Untuk detail pembelian
     public $detailPembelianId = null;
     public $alamat_id = null;
+    public $showRevisiModal = false;
+    public $editId = null;
+
+    public $form = [
+        'supplier_id' => '',
+        'tanggal' => '',
+        'total' => '',
+        'kena_pajak' => false,
+        'items' => [],
+        'akun_kas_id' => 1,
+        'kategori_id' => null,
+    ];
+
+    // 🔄 Auto update total saat item berubah
+    public function updatedForm()
+    {
+        $this->form['total'] = collect($this->form['items'])
+            ->sum(fn($i) => ($i['qty'] ?? 0) * ($i['harga_beli'] ?? 0));
+    }
+
+    public function openRevisi($id)
+    {
+        $pb = Pembelian::with(['items'])->findOrFail($id);
+
+        $this->editId = $pb->id;
+        $this->showRevisiModal = true;
+
+        // isi form dengan data lama
+        $this->form['supplier_id'] = $pb->supplier_id;
+        $this->form['tanggal'] = $pb->tanggal->format('Y-m-d');
+        $this->form['total'] = $pb->total;
+        $this->form['kena_pajak'] = $pb->kena_pajak;
+        $this->form['items'] = $pb->items->map(fn($i) => [
+            'produk_id' => $i->produk_id,
+            'harga_beli' => $i->harga_beli,
+            'qty' => $i->qty,
+            'kena_pajak' => $i->kena_pajak,
+        ])->toArray();
+    }
+
+    public function simpanRevisi()
+    {
+        $pbLama = Pembelian::with('items')->findOrFail($this->editId);
+        RevisiService::revisiTransaksi('pembelian', $pbLama, $this->form);
+
+        $this->showRevisiModal = false;
+        $this->dispatch('notify', message: 'Revisi pembelian berhasil disimpan.');
+        $this->reset('form', 'editId');
+    }
     public function updatedSelectAll($value)
     {
         if ($value) {
@@ -141,29 +191,38 @@ class Laporan extends Component
 
     public function render()
     {
+        // 🔎 Query dasar untuk pembelian aktif / hasil revisi saja
         $baseQuery = Pembelian::with('supplier')
+            ->whereIn('status', ['aktif', 'revisi']) // tampilkan hanya transaksi aktif & hasil revisi
             ->when($this->tanggal_awal, fn($q) => $q->whereDate('tanggal', '>=', $this->tanggal_awal))
             ->when($this->tanggal_akhir, fn($q) => $q->whereDate('tanggal', '<=', $this->tanggal_akhir))
             ->when($this->supplier_id, fn($q) => $q->where('supplier_id', $this->supplier_id))
             ->when($this->filter_pajak !== '', fn($q) => $q->where('kena_pajak', $this->filter_pajak))
-            ->when($this->search_no_faktur, fn($q) => $q->where('no_faktur', 'like', '%' . $this->search_no_faktur . '%')); // ✅ filter baru
+            ->when($this->search_no_faktur, fn($q) => $q->where('no_faktur', 'like', "%{$this->search_no_faktur}%"))
+            ->orderByDesc('tanggal')
+            ->orderByDesc('id');
 
+        // 🔹 Pagination 10 per halaman
+        $pembelians = $baseQuery->paginate(10);
 
-        $pembelians = (clone $baseQuery)
-            ->orderBy('id', 'desc')
-            ->paginate(10);
-
+        // 🔹 Hitung total dari query yang sama (tanpa pagination)
         $total = (clone $baseQuery)->sum('total');
 
-        $suppliers = Supplier::all();
+        // 🔹 Ambil data master supplier
+        $suppliers = Supplier::orderBy('nama')->get();
+
+        // 🔹 Detail pembelian (jika sedang dibuka)
+        $detail = null;
+        if ($this->detailPembelianId) {
+            $detail = Pembelian::with(['items.produk', 'supplier'])
+                ->find($this->detailPembelianId);
+        }
 
         return view('livewire.pembelian.laporan', [
             'pembelians' => $pembelians,
             'suppliers'  => $suppliers,
             'total'      => $total,
-            'detail'     => $this->detailPembelianId
-                ? Pembelian::with(['items.produk', 'supplier'])->find($this->detailPembelianId)
-                : null,
+            'detail'     => $detail,
         ]);
     }
 }

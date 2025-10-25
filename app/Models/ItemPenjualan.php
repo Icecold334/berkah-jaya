@@ -14,7 +14,7 @@ class ItemPenjualan extends Model
         'produk_id',
         'harga_jual',
         'qty',
-        'subtotal',
+        // 'subtotal',
     ];
 
     // Relasi ke Penjualan

@@ -13,6 +13,11 @@ return new class extends Migration
     {
         Schema::create('penjualans', function (Blueprint $table) {
             $table->id();
+            // $table->enum('status', ['aktif', 'direvisi', 'rollback'])->default('aktif');
+            // $table->foreignId('revisi_dari_id')
+            //     ->nullable()
+            //     ->constrained('penjualans')
+            //     ->nullOnDelete();
             $table->foreignId('customer_id')->nullable()->constrained('customers');
             $table->string('no_struk')->unique();
             $table->boolean('kena_pajak')->default(false);

@@ -26,7 +26,7 @@ class ProdukSupplier extends Model
     // Relasi ke supplier
     public function supplier()
     {
-        return $this->belongsTo(Supplier::class, 'supplier_id');
+        return $this->belongsTo(Supplier::class, 'supplier_id')->withTrashed();
     }
 
     /** ⚙️ Helper Method **/

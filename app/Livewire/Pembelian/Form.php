@@ -10,6 +10,7 @@ use App\Models\Pembelian;
 use Illuminate\Support\Str;
 use App\Models\TransaksiKas;
 use App\Models\ItemPembelian;
+use App\Models\KategoriKas;
 use App\Models\PergerakanStok;
 use App\Models\ProdukSupplier;
 use Illuminate\Support\Facades\DB;
@@ -22,6 +23,55 @@ class Form extends Component
     public $kenaPajak = false; // ✅ konsisten dengan blade
 
     public $items = []; // {nama, qty, harga_beli, kena_pajak}
+    public $showConfirmModal = false; // untuk buka/tutup modal
+    public $totalPreview;             // untuk tampilkan total di modal
+
+    // Tambahkan di dalam class Form
+
+    public $searchResults = []; // untuk simpan hasil pencarian produk
+    public function konfirmasiSimpan()
+    {
+        // hitung total & status pajak sebelum modal muncul
+        $this->totalPreview = collect($this->items)->sum(function ($i) {
+            $harga = preg_replace('/[^0-9]/', '', $i['harga_beli']); // hapus semua non-angka
+            $qty   = (int) $i['qty'];
+            return ((int) $harga) * $qty;
+        });
+
+        $this->showConfirmModal = true;
+    }
+
+    public function simpanFinal()
+    {
+        // panggil logika simpan asli
+        $this->simpan();
+        $this->showConfirmModal = false;
+    }
+    public function updatedItems($value, $key)
+    {
+        // deteksi field mana yang berubah, misal items.0.nama
+        if (Str::endsWith($key, '.nama')) {
+            $index = explode('.', $key)[0];
+            $nama = $this->items[$index]['nama'] ?? '';
+
+            $slug = Str::slug($nama);
+            if (strlen($nama)) {
+                $this->searchResults[$index] = Produk::where('slug', 'like', "%{$slug}%")
+                    ->limit(5)
+                    ->pluck('nama')
+                    ->toArray();
+            } else {
+                $this->searchResults[$index] = [];
+            }
+        }
+    }
+
+    public function pilihProduk($index, $nama)
+    {
+        $this->items[$index]['nama'] = $nama;
+        $this->searchResults[$index] = []; // tutup dropdown setelah pilih
+    }
+
 
     public function mount()
     {
@@ -121,12 +171,12 @@ class Form extends Component
                     'keterangan'         => 'Pembelian',
                 ]);
             }
-
+            $pembelianId = KategoriKas::where('nama', 'pembelian')->first()->id;
             TransaksiKas::create([
                 'akun_kas_id' => 1,
                 'tanggal'     => $this->tanggal,
                 'tipe'        => 'keluar',
-                'kategori_id' => 3, // pembelian
+                'kategori_id' => $pembelianId,
                 'jumlah'      => $pembelian->total,
                 'keterangan'  => 'Pembelian #' . $pembelian->no_faktur,
                 'sumber_type' => Pembelian::class,

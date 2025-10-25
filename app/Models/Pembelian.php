@@ -9,7 +9,18 @@ use Illuminate\Database\Eloquent\Relations\MorphOne;
 class Pembelian extends Model
 {
     protected $table = 'pembelians';
-    protected $fillable = ['no_faktur', 'supplier_id', 'tanggal', 'total', 'keterangan', 'kena_pajak',];
+    protected $fillable = ['no_faktur', 'supplier_id', 'tanggal', 'total', 'keterangan', 'kena_pajak', 'status'];
+
+    protected static function booted()
+    {
+        static::creating(function ($model) {
+            $model->status ??= 'aktif';
+            if (empty($model->no_faktur)) {
+                $model->no_faktur = self::generateNoFaktur();
+            }
+        });
+    }
+
 
     protected $casts = [
         'tanggal' => 'date',
@@ -18,10 +29,21 @@ class Pembelian extends Model
 
     /** 🔗 Relasi **/
 
+    public function revisiDari()
+    {
+        return $this->belongsTo(Pembelian::class, 'revisi_dari_id')->withTrashed();
+    }
+
+    public function revisiAnak()
+    {
+        return $this->hasOne(Pembelian::class, 'revisi_dari_id')->withTrashed();
+    }
+
+
     // Pembelian milik 1 supplier
     public function supplier()
     {
-        return $this->belongsTo(Supplier::class, 'supplier_id');
+        return $this->belongsTo(Supplier::class, 'supplier_id')->withTrashed();
     }
 
     // Pembelian punya banyak item

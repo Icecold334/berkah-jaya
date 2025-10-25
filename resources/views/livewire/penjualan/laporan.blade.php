@@ -40,23 +40,23 @@
 
             {{-- 🔄 Bulk Download --}}
             @if (count($selectedPenjualans) > 0)
-                <div class="flex items-center gap-2">
-                    <select wire:model.live="alamat_id"
-                        class="text-sm rounded border-gray-300 focus:ring-primary-500 focus:border-primary-500">
-                        <option value="">Pilih Alamat</option>
-                        @foreach (config('alamat') as $key => $a)
-                            <option value="{{ $key }}">{{ $a['label'] }}</option>
-                        @endforeach
-                    </select>
+            <div class="flex items-center gap-2">
+                <select wire:model.live="alamat_id"
+                    class="text-sm rounded border-gray-300 focus:ring-primary-500 focus:border-primary-500">
+                    <option value="">Pilih Alamat</option>
+                    @foreach (config('alamat') as $key => $a)
+                    <option value="{{ $key }}">{{ $a['label'] }}</option>
+                    @endforeach
+                </select>
 
-                    <button wire:click="bulkDownload" @disabled(empty($alamat_id)) @class([
-                        'bg-success-100 text-success-800 text-sm font-medium px-3 py-1 rounded shadow-sm',
-                        'cursor-not-allowed opacity-50' => empty($alamat_id),
+                <button wire:click="bulkDownload" @disabled(empty($alamat_id))
+                    @class([ 'bg-success-100 text-success-800 text-sm font-medium px-3 py-1 rounded shadow-sm'
+                    , 'cursor-not-allowed opacity-50'=> empty($alamat_id),
                     ])>
-                        <i class="fa-solid fa-file-pdf mr-1"></i>
-                        Download Nota ({{ count($selectedPenjualans) }})
-                    </button>
-                </div>
+                    <i class="fa-solid fa-file-pdf mr-1"></i>
+                    Download Nota ({{ count($selectedPenjualans) }})
+                </button>
+            </div>
             @endif
         </div>
 
@@ -65,8 +65,7 @@
                 <thead class="text-xs text-gray-700 uppercase bg-primary-50">
                     <tr>
                         <th class="px-3 py-2 w-1/12">
-                            <input type="checkbox" wire:model.live="selectAll"
-                                class="h-5 w-5 rounded border-gray-400 text-primary-600 focus:ring-primary-500 
+                            <input type="checkbox" wire:model.live="selectAll" class="h-5 w-5 rounded border-gray-400 text-primary-600 focus:ring-primary-500 
            checked:border-primary-600 checked:bg-primary-600 hover:border-primary-500" />
                         </th>
                         <th class="px-4 py-2">No Struk</th>
@@ -79,37 +78,42 @@
                 </thead>
                 <tbody>
                     @forelse($penjualans as $pj)
-                        <tr class="odd:bg-white even:bg-gray-50 border-b">
-                            <td class="px-3 py-2">
-                                <input type="checkbox" value="{{ $pj->id }}" wire:model.live="selectedPenjualans"
-                                    class="h-5 w-5 rounded border-gray-400 text-primary-600 focus:ring-primary-500 
+                    <tr class="odd:bg-white even:bg-gray-50 border-b">
+                        <td class="px-3 py-2">
+                            <input type="checkbox" value="{{ $pj->id }}" wire:model.live="selectedPenjualans" class="h-5 w-5 rounded border-gray-400 text-primary-600 focus:ring-primary-500 
            checked:border-primary-600 checked:bg-primary-600 hover:border-primary-500" />
-                            </td>
-                            <td class="px-4 py-2 font-semibold text-primary-700">{{ $pj->no_struk }}</td>
-                            <td class="px-4 py-2">{{ $pj->tanggal->format('d/m/Y') }}</td>
-                            {{-- <td class="px-4 py-2">{{ $pj->customer?->nama ?? '-' }}</td> --}}
-                            <td class="px-4 py-2 text-right">Rp {{ number_format($pj->total, 0, ',', '.') }}</td>
-                            <td class="px-4 py-2">
-                                @if ($pj->kena_pajak)
-                                    <span
-                                        class="bg-success-100 text-success-800 text-xs font-medium px-2.5 py-0.5 rounded">Pajak</span>
-                                @else
-                                    <span
-                                        class="bg-gray-100 text-gray-800 text-xs font-medium px-2.5 py-0.5 rounded">Non
-                                        Pajak</span>
-                                @endif
-                            </td>
-                            <td class="px-4 py-2">
-                                <button type="button" wire:click="showDetail({{ $pj->id }})"
-                                    class="bg-info-100 text-info-800 text-xs font-medium px-3 py-1 rounded shadow-sm">
-                                    Detail
-                                </button>
-                            </td>
-                        </tr>
+                        </td>
+                        <td class="px-4 py-2 font-semibold text-primary-700">{{ $pj->no_struk }}</td>
+                        <td class="px-4 py-2">{{ $pj->tanggal->format('d/m/Y') }}</td>
+                        {{-- <td class="px-4 py-2">{{ $pj->customer?->nama ?? '-' }}</td> --}}
+                        <td class="px-4 py-2 text-right">Rp {{ number_format($pj->total, 0, ',', '.') }}</td>
+                        <td class="px-4 py-2">
+                            @if ($pj->kena_pajak)
+                            <span
+                                class="bg-success-100 text-success-800 text-xs font-medium px-2.5 py-0.5 rounded">Pajak</span>
+                            @else
+                            <span class="bg-gray-100 text-gray-800 text-xs font-medium px-2.5 py-0.5 rounded">Non
+                                Pajak</span>
+                            @endif
+                        </td>
+                        <td class="px-4 py-2">
+                            <button type="button" wire:click="showDetail({{ $pj->id }})"
+                                class="bg-info-100 text-info-800 text-xs font-medium px-3 py-1 rounded shadow-sm">
+                                Detail
+                            </button>
+
+                            @if ($pj->status === 'aktif')
+                            <button type="button" wire:click="openRevisi({{ $pj->id }})"
+                                class="bg-warning-100 text-warning-800 text-xs font-medium px-3 py-1 rounded shadow-sm ml-1">
+                                Revisi
+                            </button>
+                            @endif
+                        </td>
+                    </tr>
                     @empty
-                        <tr>
-                            <td colspan="7" class="py-4 text-gray-500">Tidak ada data</td>
-                        </tr>
+                    <tr>
+                        <td colspan="7" class="py-4 text-gray-500">Tidak ada data</td>
+                    </tr>
                     @endforelse
                 </tbody>
             </table>
@@ -127,95 +131,183 @@
 
     {{-- 🔍 Modal Detail Penjualan --}}
     @if ($detail)
-        <div class="fixed inset-0 bg-gray-900/50 flex items-center justify-center z-50">
-            <div class="bg-white rounded-lg shadow-lg w-2/3">
-                <div class="flex justify-between items-center border-b px-6 py-3">
-                    <h2 class="font-bold text-lg">Detail Penjualan #{{ $detail->no_struk }}</h2>
-                    <div class="flex items-center gap-3">
-                        <select wire:model.live="alamat_id"
-                            class="rounded border-gray-300 text-sm focus:ring-primary-500 focus:border-primary-500">
-                            <option value="">Pilih Alamat</option>
-                            @foreach (config('alamat') as $key => $a)
-                                <option value="{{ $key }}">{{ $a['label'] }}</option>
-                            @endforeach
-                        </select>
+    <div class="fixed inset-0 bg-gray-900/50 flex items-center justify-center z-50">
+        <div class="bg-white rounded-lg shadow-lg w-2/3">
+            <div class="flex justify-between items-center border-b px-6 py-3">
+                <h2 class="font-bold text-lg">Detail Penjualan #{{ $detail->no_struk }}</h2>
+                <div class="flex items-center gap-3">
+                    <select wire:model.live="alamat_id"
+                        class="rounded border-gray-300 text-sm focus:ring-primary-500 focus:border-primary-500">
+                        <option value="">Pilih Alamat</option>
+                        @foreach (config('alamat') as $key => $a)
+                        <option value="{{ $key }}">{{ $a['label'] }}</option>
+                        @endforeach
+                    </select>
 
-                        <button wire:click="downloadPdf({{ $detail->id }})" @disabled(empty($alamat_id))
-                            @class([
-                                'bg-success-100 text-success-800 text-sm font-medium px-3 py-1 rounded shadow-sm',
-                                'cursor-not-allowed opacity-50' => empty($alamat_id),
-                            ])>
-                            <i class="fa-solid fa-file-pdf mr-1"></i> Download Nota
-                        </button>
+                    <button wire:click="downloadPdf({{ $detail->id }})" @disabled(empty($alamat_id))
+                        @class([ 'bg-success-100 text-success-800 text-sm font-medium px-3 py-1 rounded shadow-sm'
+                        , 'cursor-not-allowed opacity-50'=> empty($alamat_id),
+                        ])>
+                        <i class="fa-solid fa-file-pdf mr-1"></i> Download Nota
+                    </button>
 
-                        <button wire:click="closeDetail" class="text-gray-500 hover:text-gray-700">&times;</button>
-                    </div>
+                    <button wire:click="closeDetail" class="text-gray-500 hover:text-gray-700">&times;</button>
                 </div>
-                <div class="p-6 space-y-4">
-                    {{-- Info utama --}}
-                    <table class="w-full text-sm text-gray-700">
-                        <tbody>
-                            <tr>
-                                <td class="font-semibold w-1/4 py-1">Tanggal</td>
-                                <td class="py-1">{{ $detail->tanggal->translatedFormat('l, d F Y') }}</td>
-                            </tr>
-                            {{-- <tr>
+            </div>
+            <div class="p-6 space-y-4">
+                {{-- Info utama --}}
+                <table class="w-full text-sm text-gray-700">
+                    <tbody>
+                        <tr>
+                            <td class="font-semibold w-1/4 py-1">Tanggal</td>
+                            <td class="py-1">{{ $detail->tanggal->translatedFormat('l, d F Y') }}</td>
+                        </tr>
+                        {{-- <tr>
                             <td class="font-semibold py-1">Customer</td>
                             <td class="py-1">{{ $detail->customer?->nama ?? '-' }}</td>
                         </tr> --}}
+                        <tr>
+                            <td class="font-semibold py-1">Total</td>
+                            <td class="py-1">Rp {{ number_format($detail->total, 0, ',', '.') }}</td>
+                        </tr>
+                        <tr>
+                            <td class="font-semibold py-1">Status Pajak</td>
+                            <td class="py-1">
+                                @if ($detail->kena_pajak)
+                                <span class="text-success-600 font-semibold">Pajak</span>
+                                @else
+                                <span class="text-gray-600 font-semibold">Non Pajak</span>
+                                @endif
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                {{-- Item penjualan --}}
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm text-gray-700">
+                        <thead class="bg-primary-50">
                             <tr>
-                                <td class="font-semibold py-1">Total</td>
-                                <td class="py-1">Rp {{ number_format($detail->total, 0, ',', '.') }}</td>
+                                <th class="px-4 py-2 text-left">Produk</th>
+                                <th class="px-4 py-2 text-right">Qty</th>
+                                <th class="px-4 py-2 text-right">Harga</th>
+                                <th class="px-4 py-2 text-right">Subtotal</th>
                             </tr>
-                            <tr>
-                                <td class="font-semibold py-1">Status Pajak</td>
-                                <td class="py-1">
-                                    @if ($detail->kena_pajak)
-                                        <span class="text-success-600 font-semibold">Pajak</span>
-                                    @else
-                                        <span class="text-gray-600 font-semibold">Non Pajak</span>
-                                    @endif
+                        </thead>
+                        <tbody>
+                            @foreach ($detail->items as $item)
+                            <tr class="border-b">
+                                <td class="px-4 py-2">{{ $item->produk->nama }}</td>
+                                <td class="px-4 py-2 text-right">{{ $item->qty }}</td>
+                                <td class="px-4 py-2 text-right">
+                                    Rp {{ number_format($item->harga_jual, 0, ',', '.') }}
+                                </td>
+                                <td class="px-4 py-2 text-right">
+                                    Rp {{ number_format($item->subtotal, 0, ',', '.') }}
                                 </td>
                             </tr>
+                            @endforeach
                         </tbody>
                     </table>
-
-                    {{-- Item penjualan --}}
-                    <div class="overflow-x-auto">
-                        <table class="w-full text-sm text-gray-700">
-                            <thead class="bg-primary-50">
-                                <tr>
-                                    <th class="px-4 py-2 text-left">Produk</th>
-                                    <th class="px-4 py-2 text-right">Qty</th>
-                                    <th class="px-4 py-2 text-right">Harga</th>
-                                    <th class="px-4 py-2 text-right">Subtotal</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @foreach ($detail->items as $item)
-                                    <tr class="border-b">
-                                        <td class="px-4 py-2">{{ $item->produk->nama }}</td>
-                                        <td class="px-4 py-2 text-right">{{ $item->qty }}</td>
-                                        <td class="px-4 py-2 text-right">
-                                            Rp {{ number_format($item->harga_jual, 0, ',', '.') }}
-                                        </td>
-                                        <td class="px-4 py-2 text-right">
-                                            Rp {{ number_format($item->subtotal, 0, ',', '.') }}
-                                        </td>
-                                    </tr>
-                                @endforeach
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-                <div class="flex justify-end border-t px-6 py-3">
-                    <button wire:click="closeDetail"
-                        class="bg-gray-200 hover:bg-gray-300 text-gray-800 text-sm font-medium px-4 py-2 rounded">
-                        Tutup
-                    </button>
                 </div>
             </div>
+            <div class="flex justify-end border-t px-6 py-3">
+                <button wire:click="closeDetail"
+                    class="bg-gray-200 hover:bg-gray-300 text-gray-800 text-sm font-medium px-4 py-2 rounded">
+                    Tutup
+                </button>
+            </div>
         </div>
+    </div>
     @endif
 
+
+    @if ($showRevisiModal)
+    <div class="fixed inset-0 bg-gray-900/50 flex items-center justify-center z-50">
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-3xl mx-4">
+            {{-- Header --}}
+            <div class="flex justify-between items-center border-b px-6 py-4">
+                <h2 class="font-bold text-lg text-gray-800">
+                    ✏️ Revisi Penjualan <span class="text-primary-600 font-semibold">#{{ $editId }}</span>
+                </h2>
+                <button wire:click="$set('showRevisiModal', false)"
+                    class="text-gray-400 hover:text-gray-700 transition">
+                    <i class="fa-solid fa-times text-lg"></i>
+                </button>
+            </div>
+
+            {{-- Body --}}
+            <div class="p-6 space-y-5 text-sm text-gray-800">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-gray-600 font-medium mb-1">Customer</label>
+                        <input type="text" value="{{ \App\Models\Customer::find($form['customer_id'])->nama ?? '-' }}"
+                            class="w-full bg-gray-50 border border-gray-300 rounded text-sm px-3 py-2" readonly>
+                    </div>
+
+                    <div>
+                        <label class="block text-gray-600 font-medium mb-1">Tanggal</label>
+                        <input type="date" wire:model="form.tanggal"
+                            class="w-full border-gray-300 rounded text-sm px-3 py-2 focus:ring-primary-500 focus:border-primary-500">
+                    </div>
+                </div>
+
+                {{-- Daftar Item --}}
+                <div>
+                    <label class="block text-gray-600 font-medium mb-2">Daftar Item</label>
+                    <div class="border border-gray-200 rounded-md divide-y max-h-72 overflow-y-auto">
+                        <div class="grid grid-cols-12 bg-gray-50 text-xs font-semibold text-gray-600 px-3 py-2">
+                            <div class="col-span-5 text-left">Produk</div>
+                            <div class="col-span-2 text-right">Qty</div>
+                            <div class="col-span-3 text-right">Harga</div>
+                            <div class="col-span-2 text-right">Subtotal</div>
+                        </div>
+
+                        @foreach ($form['items'] as $index => $item)
+                        <div class="grid grid-cols-12 gap-2 items-center px-3 py-2">
+                            <div class="col-span-5">
+                                <input type="text"
+                                    value="{{ \App\Models\Produk::find($item['produk_id'])->nama ?? 'Produk #' . $item['produk_id'] }}"
+                                    class="w-full border border-gray-200 bg-gray-50 rounded px-2 py-1 text-sm" readonly>
+                            </div>
+                            <div class="col-span-2">
+                                <input type="number" wire:model.live="form.items.{{ $index }}.qty"
+                                    class="w-full border-gray-300 rounded text-sm text-right px-2 py-1 focus:ring-primary-500 focus:border-primary-500">
+                            </div>
+                            <div class="col-span-3">
+                                <input type="number" wire:model.live="form.items.{{ $index }}.harga_jual"
+                                    class="w-full border-gray-300 rounded text-sm text-right px-2 py-1 focus:ring-primary-500 focus:border-primary-500">
+                            </div>
+                            <div class="col-span-2 text-right text-gray-700 font-medium">
+                                Rp {{ number_format(($item['qty'] ?? 0) * ($item['harga_jual'] ?? 0), 0, ',', '.') }}
+                            </div>
+                        </div>
+                        @endforeach
+                    </div>
+
+                    <div class="flex justify-between items-center mt-4 border-t pt-2 text-sm font-medium">
+                        <span class="text-gray-700">Total Revisi</span>
+                        <span class="text-primary-700 text-base font-semibold">
+                            Rp {{ number_format(collect($form['items'])->sum(fn($i) => ($i['qty'] ?? 0) *
+                            ($i['harga_jual']
+                            ?? 0)), 0, ',', '.') }}
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            {{-- Footer --}}
+            <div class="flex justify-end items-center border-t bg-gray-50 px-6 py-3 gap-3">
+                <button wire:click="$set('showRevisiModal', false)"
+                    class="px-4 py-2 rounded bg-gray-200 hover:bg-gray-300 text-gray-700 text-sm font-medium">
+                    Batal
+                </button>
+                <button wire:click="simpanRevisi"
+                    class="px-5 py-2 rounded bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium shadow">
+                    Simpan Revisi
+                </button>
+            </div>
+        </div>
+    </div>
+    @endif
 </div>
