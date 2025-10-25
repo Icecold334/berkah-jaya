@@ -11,6 +11,7 @@ use App\Models\KategoriKas;
 use App\Models\TransaksiKas;
 use App\Models\ItemPenjualan;
 use App\Models\PergerakanStok;
+use App\Models\PembayaranKredit;
 use Illuminate\Support\Facades\DB;
 
 class Form extends Component
@@ -20,13 +21,9 @@ class Form extends Component
     public $cart = [];
     public $tanggal;
     public $customer_id; // opsional, bisa null
-
-    public $showMetodeModal = false;
-    public $showKreditModal = false;
     public $showConfirmModal = false;
-    public $metodeBayar = 'cash';
-    public $jatuh_tempo;
-    public $keterangan_kredit;
+    public $showFinalConfirmModal = false;
+    public $metodeBayar = null;
     public $totalPreview;
 
     public function konfirmasiSimpan()
@@ -36,44 +33,27 @@ class Form extends Component
         }
 
         $this->totalPreview = $this->getTotalProperty();
-
-        // Tutup modal lain dulu
-        $this->showConfirmModal = false;
-        $this->showKreditModal = false;
-
-        // Tampilkan modal metode
-        $this->showMetodeModal = true;
+        $this->showConfirmModal = true;
     }
 
     public function pilihMetode($metode)
     {
         $this->metodeBayar = $metode;
-
-        $this->showMetodeModal = false;
         $this->showConfirmModal = false;
-        $this->showKreditModal = false;
-
-        if ($metode === 'cash') {
-            $this->showConfirmModal = true;
-        } else {
-            $this->showKreditModal = true;
-        }
+        $this->showFinalConfirmModal = true;
     }
 
     public function simpanFinal()
     {
         try {
-            $this->simpan(); // jalankan penyimpanan
+            $this->simpan();
             $this->dispatch('toast', type: 'success', message: 'Penjualan berhasil disimpan!');
         } catch (\Throwable $e) {
             report($e);
             $this->dispatch('toast', type: 'error', message: 'Terjadi kesalahan saat menyimpan penjualan!');
         }
 
-        // Tutup semua modal apapun hasilnya
-        $this->showConfirmModal = false;
-        $this->showMetodeModal = false;
-        $this->showKreditModal = false;
+        $this->showFinalConfirmModal = false;
     }
 
     public function focusSearch()
@@ -259,9 +239,8 @@ class Form extends Component
 
                 // 3️⃣ Tergantung metode pembayaran
                 if ($this->metodeBayar === 'cash') {
-                    // 💵 Jika Tunai → buat Transaksi Kas Masuk
                     $kategori = KategoriKas::where('nama', 'Penjualan')->first();
-                    $akunKasId = Setting::getValue('akun_penjualan', 1); // default akun kas
+                    $akunKasId = Setting::getValue('akun_penjualan', 1);
 
                     TransaksiKas::create([
                         'akun_kas_id' => $akunKasId,
@@ -272,18 +251,6 @@ class Form extends Component
                         'keterangan' => 'Penjualan #' . $penjualan->no_struk,
                         'sumber_type' => Penjualan::class,
                         'sumber_id' => $penjualan->id,
-                    ]);
-                } else {
-                    // 📄 Jika Kredit → buat Piutang
-                    Piutang::create([
-                        'penjualan_id' => $penjualan->id,
-                        'customer_id' => $this->customer_id ?? 1,
-                        'total_tagihan' => $penjualan->total,
-                        'total_terbayar' => 0,
-                        'sisa_tagihan' => $penjualan->total,
-                        'jatuh_tempo' => $this->jatuh_tempo ?? now()->addDays(30),
-                        'status' => 'belum_lunas',
-                        'keterangan' => $this->keterangan_kredit,
                     ]);
                 }
             }

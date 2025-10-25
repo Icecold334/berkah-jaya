@@ -5,9 +5,12 @@ namespace App\Livewire\Pembelian;
 use Livewire\Component;
 use App\Models\Supplier;
 use App\Models\Pembelian;
+use App\Models\KategoriKas;
+use App\Models\TransaksiKas;
 use Livewire\WithPagination;
 use App\Services\RevisiService;
 use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Response;
 
 class Laporan extends Component
@@ -28,6 +31,14 @@ class Laporan extends Component
     public $alamat_id = null;
     public $showRevisiModal = false;
     public $editId = null;
+    public $riwayatPembayaran = [];
+    public $showBayarModal = false;
+    public $bayarForm = [
+        'pembelian_id' => null,
+        'tanggal' => '',
+        'jumlah' => '',
+        'keterangan' => '',
+    ];
 
     public $form = [
         'supplier_id' => '',
@@ -38,6 +49,75 @@ class Laporan extends Component
         'akun_kas_id' => 1,
         'kategori_id' => null,
     ];
+
+    public function openBayarModal($id)
+    {
+        $pembelian = Pembelian::with('transaksiKas')->findOrFail($id);
+        $sisa = $pembelian->sisa_bayar;
+
+        $this->bayarForm = [
+            'pembelian_id' => $pembelian->id,
+            'tanggal' => now()->format('Y-m-d'),
+            'jumlah' => null,
+            'keterangan' => 'Pembayaran Pembelian #' . $pembelian->no_faktur,
+        ];
+
+        // 🔹 Ambil semua transaksi kas untuk pembelian ini
+        $this->riwayatPembayaran = $pembelian->transaksiKas()
+            ->orderBy('tanggal')
+            ->get(['tanggal', 'jumlah', 'keterangan'])
+            ->map(fn($t) => [
+                'tanggal' => $t->tanggal->format('d/m/Y'),
+                'jumlah' => $t->jumlah,
+                'keterangan' => $t->keterangan,
+            ])->toArray();
+
+        $this->showBayarModal = true;
+    }
+
+    public function updatedBayarFormJumlah($value)
+    {
+        // Hapus semua karakter non angka
+        $angka = preg_replace('/[^0-9]/', '', $value);
+        $this->bayarForm['jumlah'] = $angka;
+    }
+
+    public function simpanPembayaran()
+    {
+        $this->validate([
+            'bayarForm.pembelian_id' => 'required|exists:pembelians,id',
+            'bayarForm.tanggal' => 'required|date',
+            'bayarForm.jumlah' => 'required|numeric|min:1',
+        ]);
+
+        DB::beginTransaction();
+        try {
+            $pembelian = Pembelian::findOrFail($this->bayarForm['pembelian_id']);
+
+            $kategori = KategoriKas::where('nama', 'Pembelian')->first();
+
+            TransaksiKas::create([
+                'akun_kas_id' => 1,
+                'tanggal' => $this->bayarForm['tanggal'],
+                'tipe' => 'keluar',
+                'kategori_id' => $kategori?->id,
+                'jumlah' => $this->bayarForm['jumlah'],
+                'keterangan' => $this->bayarForm['keterangan'],
+                'sumber_type' => Pembelian::class,
+                'sumber_id' => $pembelian->id,
+            ]);
+
+            DB::commit();
+
+            $this->dispatch('toast', type: 'success', message: 'Pembayaran berhasil disimpan!');
+            $this->showBayarModal = false;
+            $this->reset('bayarForm');
+        } catch (\Throwable $e) {
+            DB::rollBack();
+            report($e);
+            $this->dispatch('toast', type: 'error', message: 'Gagal menyimpan pembayaran: ' . $e->getMessage());
+        }
+    }
 
     // 🔄 Auto update total saat item berubah
     public function updatedForm()
@@ -60,7 +140,7 @@ class Laporan extends Component
         $this->form['kena_pajak'] = $pb->kena_pajak;
         $this->form['items'] = $pb->items->map(fn($i) => [
             'produk_id' => $i->produk_id,
-            'harga_beli' => $i->harga_beli,
+            'harga_beli' => (string) $i->harga_beli,
             'qty' => $i->qty,
             'kena_pajak' => $i->kena_pajak,
         ])->toArray();

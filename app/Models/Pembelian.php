@@ -53,11 +53,37 @@ class Pembelian extends Model
     }
 
     // Pembelian terkait ke transaksi kas (polymorphic)
-    public function transaksiKas(): MorphOne
+    public function transaksiKas()
     {
-        return $this->morphOne(TransaksiKas::class, 'sumber');
+        return $this->hasOne(TransaksiKas::class, 'sumber_id')
+            ->where('sumber_type', self::class);
     }
 
+
+    /**
+     * Total jumlah pembayaran yang sudah masuk ke kas
+     */
+    public function getTotalDibayarAttribute()
+    {
+        return $this->transaksiKas()->sum('jumlah');
+    }
+
+    /**
+     * Status pelunasan (lunas jika total pembayaran >= total pembelian)
+     */
+    public function getIsLunasAttribute()
+    {
+        return $this->total_dibayar >= $this->total;
+    }
+
+    /**
+     * Sisa hutang (belum dibayar)
+     */
+    public function getSisaBayarAttribute()
+    {
+        return max(0, $this->total - $this->total_dibayar);
+    }
+    
     // Pembelian terkait ke pergerakan stok (polymorphic)
     public function pergerakanStok()
     {
@@ -72,12 +98,6 @@ class Pembelian extends Model
         $this->total = $this->items()->sum(DB::raw('harga_beli * qty'));
         $this->save();
     }
-
-    public function hutang()
-    {
-        return $this->hasOne(Hutang::class);
-    }
-
 
     public static function generateNoFaktur()
     {

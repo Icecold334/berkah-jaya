@@ -33,6 +33,8 @@ class DatabaseSeeder extends Seeder
         ]);
         $katPenjualan = KategoriKas::create(['tipe' => 'masuk', 'nama' => 'Penjualan']);
         $katPembelian = KategoriKas::create(['tipe' => 'keluar', 'nama' => 'Pembelian']);
+        $katPenjualan = KategoriKas::create(['tipe' => 'masuk', 'nama' => 'Piutang']);
+        $katPembelian = KategoriKas::create(['tipe' => 'keluar', 'nama' => 'Hutang']);
         $kasToko = AkunKas::create([
             'nama' => 'Akun Kas 1',
             'tipe' => 'tunai',

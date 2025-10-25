@@ -77,14 +77,29 @@
                                 class="bg-gray-50 border border-gray-300 text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block w-full p-2">
                         </td>
 
-                        {{-- Input Harga Beli --}}
                         <td class="px-6 py-4 text-left">
-                            <input type="text" x-data x-init="if ($el.value) $el.value = formatRupiah($el.value)"
-                                x-on:input="$el.value = formatRupiah($el.value)"
-                                wire:model.live="items.{{ $index }}.harga_beli" placeholder="Rp 0"
-                                @disabled(empty($supplier_id))
-                                class="bg-gray-50 border border-gray-300 text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block w-full p-2">
+                            <div x-data="{
+                                formatted: '',
+                                raw: @entangle('items.' . $index . '.harga_beli').live,
+                                formatRupiah(angka) {
+                                    if (!angka) return '';
+                                    return 'Rp ' + angka.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+                                },
+                                unformat(str) {
+                                    return str.replace(/[^0-9]/g, '');
+                                },
+                                updateValue(e) {
+                                    this.raw = this.unformat(e.target.value);
+                                    this.formatted = this.formatRupiah(this.raw);
+                                }
+                            }" x-init="formatted = formatRupiah(raw);
+                            $watch('raw', val => formatted = formatRupiah(val));">
+                                <input type="text" x-model="formatted" x-on:input="updateValue($event)"
+                                    inputmode="numeric" placeholder="Rp 0" @disabled(empty($supplier_id))
+                                    class="bg-gray-50 border border-gray-300 text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block w-full p-2 text-right font-medium tracking-wide">
+                            </div>
                         </td>
+
 
                         {{-- Tombol Tambah/Hapus --}}
                         <td class="px-6 py-4 flex justify-center items-center gap-3">
@@ -130,167 +145,66 @@
         </div>
     @endif
 
-
     {{-- ===================== --}}
-    {{-- MODAL METODE PEMBAYARAN --}}
-    {{-- ===================== --}}
-    <div x-data="{ open: @entangle('showMetodeModal') }" x-cloak x-show="open"
-        class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
-        <div x-show="open" x-transition.scale.origin.center.duration.200ms
-            class="bg-white rounded-lg shadow-xl p-6 w-full max-w-md">
-            <h3 class="text-lg font-semibold text-gray-800 mb-4">Pilih Metode Pembayaran</h3>
-
-            <div class="flex flex-col gap-3">
-                <button wire:click="pilihMetode('cash')"
-                    class="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700">
-                    💵 Tunai
-                </button>
-                <button wire:click="pilihMetode('kredit')"
-                    class="px-4 py-2 bg-secondary-600 text-white rounded-lg hover:bg-secondary-700">
-                    📄 Kredit
-                </button>
-            </div>
-
-            <div class="text-right mt-4">
-                <button @click="$wire.set('showMetodeModal', false)"
-                    class="text-gray-500 text-sm hover:underline">Batal</button>
-            </div>
-        </div>
-    </div>
-
-
-    {{-- ===================== --}}
-    {{-- MODAL INPUT KREDIT --}}
-    {{-- ===================== --}}
-    <div x-data="{ open: @entangle('showKreditModal') }" x-cloak x-show="open"
-        class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
-        <div x-show="open" x-transition.scale.origin.center.duration.200ms
-            class="bg-white rounded-lg shadow-xl p-6 w-full max-w-md">
-            <h3 class="text-lg font-semibold text-gray-800 mb-4">Detail Kredit Pembelian</h3>
-
-            <div class="space-y-3">
-                <div>
-                    <label class="block text-sm text-gray-700">Jatuh Tempo</label>
-                    <input type="date" wire:model.live="jatuh_tempo"
-                        class="w-full mt-1 p-2 border border-gray-300 rounded-md">
-                </div>
-
-                <div>
-                    <label class="block text-sm text-gray-700">Keterangan Kredit</label>
-                    <textarea wire:model.live="keterangan_kredit" class="w-full mt-1 p-2 border border-gray-300 rounded-md"></textarea>
-                </div>
-            </div>
-
-            <div class="flex justify-end gap-3 mt-5">
-                <button @click="$wire.set('showKreditModal', false)"
-                    class="px-4 py-2 text-sm bg-gray-200 rounded-md">Batal</button>
-
-                {{-- ✅ saat lanjut, modal kredit ditutup dan konfirmasi dibuka --}}
-                <button type="button" @click="$wire.set('showKreditModal', false); $wire.set('showConfirmModal', true)"
-                    class="px-4 py-2 text-sm font-semibold text-white bg-primary-600 rounded-md hover:bg-primary-700">
-                    Lanjutkan
-                </button>
-            </div>
-        </div>
-    </div>
-
-
-    {{-- ===================== --}}
-    {{-- MODAL KONFIRMASI PEMBELIAN --}}
+    {{-- MODAL KONFIRMASI PEMBELIAN (Sekaligus Pilih Metode) --}}
     {{-- ===================== --}}
     <div x-data="{ open: @entangle('showConfirmModal') }" x-cloak x-show="open"
-        class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+        class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
 
         <div x-show="open" x-transition.scale.origin.center.duration.200ms
             class="bg-white rounded-xl shadow-2xl w-full max-w-md p-6 relative border border-gray-200">
 
-            {{-- Header --}}
-            <div class="flex justify-between items-center border-b pb-3 mb-4">
-                <h2 class="text-lg font-semibold text-gray-800 flex items-center gap-2">
-                    <i class="fa-solid fa-file-invoice text-primary-600"></i>
-                    Konfirmasi Pembelian
-                </h2>
-                <button @click="$wire.set('showConfirmModal', false)"
-                    class="text-gray-400 hover:text-gray-600 transition">
-                    <i class="fa-solid fa-xmark text-lg"></i>
-                </button>
+            <h2 class="text-lg font-semibold text-gray-800 mb-4">Konfirmasi Pembelian</h2>
+
+            <div class="space-y-2 text-sm text-gray-700">
+                <div class="flex justify-between"><span>Supplier</span><span
+                        class="font-semibold">{{ optional(App\Models\Supplier::find($supplier_id))->nama ?? '-' }}</span>
+                </div>
+                <div class="flex justify-between"><span>Tanggal</span><span>{{ $tanggal }}</span></div>
+                <div class="flex justify-between">
+                    <span>Pajak</span><span>{{ $kenaPajak ? 'Pakai Pajak' : 'Tanpa Pajak' }}</span>
+                </div>
+                <div class="flex justify-between"><span>Total</span><span class="font-bold">Rp
+                        {{ number_format($totalPreview, 0, ',', '.') }}</span></div>
             </div>
 
-            {{-- Body --}}
-            <div class="space-y-3 text-sm text-gray-700">
-                {{-- Supplier --}}
-                <div class="flex justify-between">
-                    <span class="font-medium text-gray-600">Supplier</span>
-                    <span class="text-gray-900 font-semibold">
-                        {{ optional(App\Models\Supplier::find($supplier_id))->nama ?? '-' }}
-                    </span>
-                </div>
-
-                {{-- Pajak --}}
-                <div class="flex justify-between items-center">
-                    <span class="font-medium text-gray-600">Status Pajak</span>
-                    <span @class([
-                        'px-2 py-0.5 rounded-full text-xs font-semibold uppercase tracking-wide',
-                        $kenaPajak
-                            ? 'bg-green-100 text-green-800 border border-green-200'
-                            : 'bg-gray-100 text-gray-700 border border-gray-200',
-                    ])>
-                        {{ $kenaPajak ? 'Pakai Pajak' : 'Tanpa Pajak' }}
-                    </span>
-                </div>
-
-                {{-- ✅ Metode Pembayaran --}}
-                <div class="flex justify-between items-center">
-                    <span class="font-medium text-gray-600">Metode Pembayaran</span>
-                    <span @class([
-                        'px-2 py-0.5 rounded-full text-xs font-semibold uppercase tracking-wide',
-                        $metodeBayar === 'cash'
-                            ? 'bg-primary-100 text-primary-800 border border-primary-200'
-                            : 'bg-secondary-100 text-secondary-800 border border-secondary-200',
-                    ])>
-                        {{ $metodeBayar === 'cash' ? 'Tunai 💵' : 'Kredit 📄' }}
-                    </span>
-                </div>
-
-                {{-- Total --}}
-                <div class="flex justify-between">
-                    <span class="font-medium text-gray-600">Total</span>
-                    <span class="font-bold text-gray-900 text-base">
-                        Rp {{ number_format($totalPreview, 0, ',', '.') }}
-                    </span>
-                </div>
-
-                {{-- Tanggal --}}
-                <div class="flex justify-between">
-                    <span class="font-medium text-gray-600">Tanggal</span>
-                    <span class="text-gray-800">{{ $tanggal }}</span>
-                </div>
-
-                {{-- Jika kredit, tampilkan info jatuh tempo --}}
-                @if ($metodeBayar === 'kredit')
-                    <div class="flex justify-between">
-                        <span class="font-medium text-gray-600">Jatuh Tempo</span>
-                        <span class="text-gray-900 font-semibold">
-                            {{ $jatuh_tempo ? \Carbon\Carbon::parse($jatuh_tempo)->format('d M Y') : '-' }}
-                        </span>
-                    </div>
-                @endif
-            </div>
-
-            <div class="border-t my-5"></div>
-
-            {{-- Footer Buttons --}}
-            <div class="flex justify-end gap-3">
+            <div class="mt-5 flex justify-end gap-3">
                 <button type="button" @click="$wire.set('showConfirmModal', false)"
-                    class="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 focus:ring-2 focus:ring-gray-300">
-                    Batal
-                </button>
+                    class="px-4 py-2 bg-gray-100 rounded-lg text-gray-700 hover:bg-gray-200">Batal</button>
 
+                <button type="button" wire:click="pilihMetode('cash')"
+                    class="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700">Tunai 💵</button>
+
+                <button type="button" wire:click="pilihMetode('kredit')"
+                    class="px-4 py-2 bg-secondary-600 text-white rounded-lg hover:bg-secondary-700">Kredit 📄</button>
+            </div>
+        </div>
+    </div>
+
+    {{-- ===================== --}}
+    {{-- MODAL KONFIRMASI AKHIR (Yakin Simpan?) --}}
+    {{-- ===================== --}}
+    <div x-data="{ open: @entangle('showFinalConfirmModal') }" x-cloak x-show="open"
+        class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+
+        <div x-show="open" x-transition.scale.origin.center.duration.200ms
+            class="bg-white rounded-lg shadow-xl p-6 w-full max-w-sm text-center">
+            <h3 class="text-lg font-semibold text-gray-800 mb-3">Yakin Simpan Pembelian Ini?</h3>
+
+            <p class="text-sm text-gray-600 mb-5">
+                Metode: <strong>{{ strtoupper($metodeBayar ?? '-') }}</strong><br>
+                Total: <strong>Rp {{ number_format($totalPreview, 0, ',', '.') }}</strong>
+            </p>
+
+            <div class="flex justify-center gap-3">
+                <button type="button" @click="$wire.set('showFinalConfirmModal', false)"
+                    class="px-4 py-2 text-sm bg-gray-200 rounded-lg">Batal</button>
                 <button type="button" wire:click="simpanFinal"
-                    class="px-4 py-2 text-sm font-semibold text-white bg-primary-600 rounded-lg hover:bg-primary-700 focus:ring-4 focus:ring-primary-300">
+                    class="px-4 py-2 text-sm font-semibold text-white bg-primary-600 rounded-lg hover:bg-primary-700">
                     Ya, Simpan
                 </button>
             </div>
         </div>
     </div>
+
 </div>

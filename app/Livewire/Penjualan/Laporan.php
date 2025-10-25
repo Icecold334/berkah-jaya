@@ -3,11 +3,15 @@
 namespace App\Livewire\Penjualan;
 
 use Livewire\Component;
-use Livewire\WithPagination;
-use App\Models\Penjualan;
 use App\Models\Customer;
-use Barryvdh\DomPDF\Facade\Pdf;
+use App\Models\Penjualan;
+use App\Models\KategoriKas;
+use App\Models\TransaksiKas;
+use Livewire\WithPagination;
 use App\Services\RevisiService;
+use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 
 class Laporan extends Component
 {
@@ -40,6 +44,82 @@ class Laporan extends Component
     // Untuk detail penjualan
     public $detailPenjualanId = null;
     public $alamat_id = null;
+    public $showBayarModal = false;
+    public $bayarForm = [
+        'penjualan_id' => null,
+        'tanggal' => '',
+        'jumlah' => '',
+        'keterangan' => '',
+    ];
+    public $riwayatPembayaran = [];
+
+    public function openBayarModal($id)
+    {
+        $penjualan = Penjualan::with('transaksiKas')->findOrFail($id);
+        $sisa = $penjualan->sisa_bayar;
+
+        $this->bayarForm = [
+            'penjualan_id' => $penjualan->id,
+            'tanggal' => now()->format('Y-m-d'),
+            'jumlah' => null,
+            'keterangan' => 'Pembayaran Penjualan #' . $penjualan->no_struk,
+        ];
+
+        $this->riwayatPembayaran = $penjualan->transaksiKas()
+            ->orderBy('tanggal')
+            ->get(['tanggal', 'jumlah', 'keterangan'])
+            ->map(fn($t) => [
+                'tanggal' => $t->tanggal->format('d/m/Y'),
+                'jumlah' => $t->jumlah,
+                'keterangan' => $t->keterangan,
+            ])->toArray();
+
+        $this->showBayarModal = true;
+    }
+
+    public function simpanPembayaran()
+    {
+        $this->validate([
+            'bayarForm.penjualan_id' => 'required|exists:penjualans,id',
+            'bayarForm.tanggal' => 'required|date',
+            'bayarForm.jumlah' => 'required|numeric|min:1',
+        ]);
+
+        DB::beginTransaction();
+        try {
+            $penjualan = Penjualan::findOrFail($this->bayarForm['penjualan_id']);
+
+            if ($this->bayarForm['jumlah'] > $penjualan->sisa_bayar) {
+                throw ValidationException::withMessages([
+                    'bayarForm.jumlah' => 'Nominal melebihi sisa piutang. Sisa bayar: Rp ' . number_format($penjualan->sisa_bayar, 0, ',', '.'),
+                ]);
+            }
+
+            $kategori = KategoriKas::where('nama', 'Penjualan')->first();
+
+            TransaksiKas::create([
+                'akun_kas_id' => 1,
+                'tanggal' => $this->bayarForm['tanggal'],
+                'tipe' => 'masuk',
+                'kategori_id' => $kategori?->id,
+                'jumlah' => $this->bayarForm['jumlah'],
+                'keterangan' => $this->bayarForm['keterangan'],
+                'sumber_type' => Penjualan::class,
+                'sumber_id' => $penjualan->id,
+            ]);
+
+            DB::commit();
+
+            $this->dispatch('toast', type: 'success', message: 'Pembayaran berhasil disimpan!');
+            $this->showBayarModal = false;
+            $this->reset('bayarForm');
+        } catch (\Throwable $e) {
+            DB::rollBack();
+            report($e);
+            $this->dispatch('toast', type: 'error', message: 'Gagal menyimpan pembayaran: ' . $e->getMessage());
+        }
+    }
+
 
     // ✅ Checkbox "select all"
     public function updatedSelectAll($value)
@@ -72,7 +152,7 @@ class Laporan extends Component
         $this->form['kena_pajak'] = $pj->kena_pajak;
         $this->form['items'] = $pj->items->map(fn($i) => [
             'produk_id' => $i->produk_id,
-            'harga_jual' => $i->harga_jual,
+            'harga_jual' => (string) $i->harga_jual,
             'qty' => $i->qty,
             'kena_pajak' => $i->kena_pajak,
         ])->toArray();

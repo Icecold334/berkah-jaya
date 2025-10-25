@@ -53,9 +53,34 @@ class Penjualan extends Model
     }
 
     // Penjualan terkait ke transaksi kas (polymorphic)
-    public function transaksiKas(): MorphOne
+    public function transaksiKas()
     {
-        return $this->morphOne(TransaksiKas::class, 'sumber');
+        return $this->hasOne(TransaksiKas::class, 'sumber_id')
+            ->where('sumber_type', self::class);
+    }
+
+    /**
+     * Total jumlah pembayaran yang sudah masuk ke kas
+     */
+    public function getTotalDibayarAttribute()
+    {
+        return $this->transaksiKas()->sum('jumlah');
+    }
+
+    /**
+     * Status pelunasan (lunas jika total pembayaran >= total pembelian)
+     */
+    public function getIsLunasAttribute()
+    {
+        return $this->total_dibayar >= $this->total;
+    }
+
+    /**
+     * Sisa hutang (belum dibayar)
+     */
+    public function getSisaBayarAttribute()
+    {
+        return max(0, $this->total - $this->total_dibayar);
     }
 
     // Penjualan terkait ke pergerakan stok (polymorphic)
@@ -64,10 +89,7 @@ class Penjualan extends Model
         return $this->morphMany(PergerakanStok::class, 'sumber');
     }
 
-    public function piutang()
-    {
-        return $this->hasOne(Piutang::class);
-    }
+
 
     /** ⚙️ Helper Method **/
 
