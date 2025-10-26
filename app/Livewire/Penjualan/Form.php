@@ -3,6 +3,7 @@
 namespace App\Livewire\Penjualan;
 
 use App\Models\Produk;
+use App\Models\Piutang;
 use App\Models\Setting;
 use Livewire\Component;
 use App\Models\Penjualan;
@@ -11,6 +12,7 @@ use App\Models\TransaksiKas;
 use App\Models\ItemPenjualan;
 use App\Models\Pembelian;
 use App\Models\PergerakanStok;
+use App\Models\PembayaranKredit;
 use Illuminate\Support\Facades\DB;
 
 class Form extends Component
@@ -20,7 +22,40 @@ class Form extends Component
     public $cart = [];
     public $tanggal;
     public $customer_id; // opsional, bisa null
+    public $showConfirmModal = false;
+    public $showFinalConfirmModal = false;
+    public $metodeBayar = null;
+    public $totalPreview;
 
+    public function konfirmasiSimpan()
+    {
+        if (empty($this->cart)) {
+            return $this->dispatch('toast', type: 'error', message: 'Keranjang masih kosong!');
+        }
+
+        $this->totalPreview = $this->getTotalProperty();
+        $this->showConfirmModal = true;
+    }
+
+    public function pilihMetode($metode)
+    {
+        $this->metodeBayar = $metode;
+        $this->showConfirmModal = false;
+        $this->showFinalConfirmModal = true;
+    }
+
+    public function simpanFinal()
+    {
+        try {
+            $this->simpan();
+            $this->dispatch('toast', type: 'success', message: 'Penjualan berhasil disimpan!');
+        } catch (\Throwable $e) {
+            report($e);
+            $this->dispatch('toast', type: 'error', message: 'Terjadi kesalahan saat menyimpan penjualan!');
+        }
+
+        $this->showFinalConfirmModal = false;
+    }
 
     public function focusSearch()
     {
@@ -166,7 +201,7 @@ class Form extends Component
             foreach ($grouped as $tipe => $items) {
                 if (empty($items)) continue;
 
-                // 1. Buat Penjualan
+                // 1️⃣ Buat Penjualan
                 $penjualan = Penjualan::create([
                     'customer_id' => $this->customer_id,
                     'tanggal' => $this->tanggal ?? now(),
@@ -174,7 +209,7 @@ class Form extends Component
                     'kena_pajak' => $tipe === 'pajak',
                 ]);
 
-                // 2. Insert item_penjualans + pergerakan_stoks
+                // 2️⃣ Simpan item & pergerakan stok keluar
                 foreach ($items as $item) {
                     ItemPenjualan::create([
                         'penjualan_id' => $penjualan->id,
@@ -182,7 +217,6 @@ class Form extends Component
                         'produk_supplier_id' => $item['produk_supplier_id'],
                         'harga_jual' => $item['harga'],
                         'qty' => $item['qty'],
-                        // 'subtotal' => $item['subtotal'],
                         'kena_pajak' => $tipe === 'pajak',
                     ]);
 
@@ -199,20 +233,22 @@ class Form extends Component
                     ]);
                 }
 
-                // 3. Transaksi kas masuk
-                $kategori = KategoriKas::where('nama', 'Penjualan')->first();
-                // 🔸 Ambil akun kas default penjualan dari settings
-                $akunKasId = Setting::getValue('akun_penjualan', 1); // default 1 kalau belum ada
-                TransaksiKas::create([
-                    'akun_kas_id' => $akunKasId,
-                    'tanggal' => $this->tanggal ?? now(),
-                    'tipe' => 'masuk',
-                    'kategori_id' => $kategori?->id,
-                    'jumlah' => $penjualan->total,
-                    'keterangan' => 'Penjualan #' . $penjualan->no_struk,
-                    'sumber_type' => Penjualan::class,
-                    'sumber_id' => $penjualan->id,
-                ]);
+                // 3️⃣ Tergantung metode pembayaran
+                if ($this->metodeBayar === 'cash') {
+                    $kategori = KategoriKas::where('nama', 'Penjualan')->first();
+                    $akunKasId = Setting::getValue('akun_penjualan', 1);
+
+                    TransaksiKas::create([
+                        'akun_kas_id' => $akunKasId,
+                        'tanggal' => $this->tanggal ?? now(),
+                        'tipe' => 'masuk',
+                        'kategori_id' => $kategori?->id,
+                        'jumlah' => $penjualan->total,
+                        'keterangan' => 'Penjualan #' . $penjualan->no_struk,
+                        'sumber_type' => Penjualan::class,
+                        'sumber_id' => $penjualan->id,
+                    ]);
+                }
             }
         });
 
@@ -222,10 +258,8 @@ class Form extends Component
         $this->produkList = [];
         $this->customer_id = null;
         $this->tanggal = null;
-
-        // 🔹 Toast sukses
-        return $this->dispatch('toast', type: 'success', message: 'Penjualan berhasil disimpan!');
     }
+
     protected function generateNoStruk()
     {
         $tanggal = now()->format('Ymd');

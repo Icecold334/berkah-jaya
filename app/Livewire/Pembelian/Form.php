@@ -3,16 +3,18 @@
 namespace App\Livewire\Pembelian;
 
 use Carbon\Carbon;
+use App\Models\Hutang;
 use App\Models\Produk;
 use Livewire\Component;
 use App\Models\Supplier;
 use App\Models\Pembelian;
+use App\Models\KategoriKas;
 use Illuminate\Support\Str;
 use App\Models\TransaksiKas;
 use App\Models\ItemPembelian;
-use App\Models\KategoriKas;
 use App\Models\PergerakanStok;
 use App\Models\ProdukSupplier;
+use App\Models\PembayaranKredit;
 use Illuminate\Support\Facades\DB;
 
 class Form extends Component
@@ -20,79 +22,54 @@ class Form extends Component
     public $supplier_id;
     public $tanggal;
     public $keterangan;
-    public $kenaPajak = false; // ✅ konsisten dengan blade
+    public $kenaPajak = false;
 
-    public $items = []; // {nama, qty, harga_beli, kena_pajak}
-    public $showConfirmModal = false; // untuk buka/tutup modal
-    public $totalPreview;             // untuk tampilkan total di modal
+    public $items = [];
+    public $searchResults = [];
 
-    // Tambahkan di dalam class Form
+    public $showConfirmModal = false;
+    public $showFinalConfirmModal = false;
+    public $metodeBayar = null;
+    public $jatuh_tempo;
+    public $keterangan_kredit;
 
-    public $searchResults = []; // untuk simpan hasil pencarian produk
-    public function konfirmasiSimpan()
-    {
-        // hitung total & status pajak sebelum modal muncul
-        $this->totalPreview = collect($this->items)->sum(function ($i) {
-            $harga = preg_replace('/[^0-9]/', '', $i['harga_beli']); // hapus semua non-angka
-            $qty   = (int) $i['qty'];
-            return ((int) $harga) * $qty;
-        });
-
-        $this->showConfirmModal = true;
-    }
-
-    public function simpanFinal()
-    {
-        // panggil logika simpan asli
-        $this->simpan();
-        $this->showConfirmModal = false;
-    }
-    public function updatedItems($value, $key)
-    {
-        // deteksi field mana yang berubah, misal items.0.nama
-        if (Str::endsWith($key, '.nama')) {
-            $index = explode('.', $key)[0];
-            $nama = $this->items[$index]['nama'] ?? '';
-
-            $slug = Str::slug($nama);
-            if (strlen($nama)) {
-                $this->searchResults[$index] = Produk::where('slug', 'like', "%{$slug}%")
-                    ->limit(5)
-                    ->pluck('nama')
-                    ->toArray();
-            } else {
-                $this->searchResults[$index] = [];
-            }
-        }
-    }
-
-    public function pilihProduk($index, $nama)
-    {
-        $this->items[$index]['nama'] = $nama;
-        $this->searchResults[$index] = []; // tutup dropdown setelah pilih
-    }
-
+    public $totalPreview;
 
     public function mount()
     {
         $this->tanggal = now()->format('Y-m-d');
-        $this->addItem(); // default 1 row
+        $this->addItem();
     }
 
     public function addItem()
     {
-        $this->items[] = [
-            'nama' => '',
-            'qty' => 1,
-            'harga_beli' => 0,
-            'kena_pajak' => $this->kenaPajak,
-        ];
+        $this->items[] = ['nama' => '', 'qty' => 1, 'harga_beli' => 0, 'kena_pajak' => $this->kenaPajak];
     }
 
     public function removeItem($index)
     {
         unset($this->items[$index]);
         $this->items = array_values($this->items);
+    }
+
+    public function konfirmasiSimpan()
+    {
+        $this->resetErrorBag();
+        $this->totalPreview = collect($this->items)->sum(fn($i) => (int) preg_replace('/[^0-9]/', '', $i['harga_beli']) * (int) $i['qty']);
+        $this->showConfirmModal = true;
+    }
+
+    public function pilihMetode($metode)
+    {
+        $this->metodeBayar = $metode;
+        $this->showConfirmModal = false;
+        $this->showFinalConfirmModal = true;
+    }
+
+    public function simpanFinal()
+    {
+        $this->simpan();
+        $this->showFinalConfirmModal = false;
     }
 
     public function togglePajak()
@@ -108,43 +85,40 @@ class Form extends Component
     public function simpan()
     {
         foreach ($this->items as $i => $item) {
-            if (isset($item['harga_beli'])) {
-                $this->items[$i]['harga_beli'] = preg_replace('/[^0-9]/', '', $item['harga_beli']);
-            }
+            $this->items[$i]['harga_beli'] = (int) preg_replace('/[^0-9]/', '', $item['harga_beli']);
         }
 
-        $this->validate([
-            'supplier_id' => 'required|exists:suppliers,id',
-        ]);
+        $this->validate(['supplier_id' => 'required|exists:suppliers,id']);
 
-        DB::transaction(function () {
-            $noFaktur = Pembelian::generateNoFaktur();
-
+        DB::beginTransaction();
+        try {
             $pembelian = Pembelian::create([
-                'no_faktur'   => $noFaktur,
+                'no_faktur'   => Pembelian::generateNoFaktur(),
                 'supplier_id' => $this->supplier_id,
                 'tanggal'     => $this->tanggal,
-                // ✅ kalau ada item kena pajak, otomatis pembelian kena pajak
                 'kena_pajak'  => collect($this->items)->contains(fn($i) => $i['kena_pajak']),
                 'total'       => collect($this->items)->sum(fn($i) => $i['harga_beli'] * $i['qty']),
                 'keterangan'  => $this->keterangan,
             ]);
 
+            // === Simpan item pembelian & stok
             foreach ($this->items as $item) {
                 $produk = Produk::firstOrCreate(
                     ['slug' => Str::slug($item['nama'])],
-                    [
-                        'nama'        => $item['nama'],
-                        'kode_barang' => fake()->unique()->numerify('BJ#####'),
-                    ]
+                    ['nama' => $item['nama'], 'kode_barang' => fake()->unique()->numerify('BJ#####')]
+                );
+
+                $produkSupplier = ProdukSupplier::updateOrCreate(
+                    ['produk_id' => $produk->id, 'supplier_id' => $this->supplier_id],
+                    ['harga_beli' => $item['harga_beli'], 'tanggal_pembelian_terakhir' => $this->tanggal]
                 );
 
                 ItemPembelian::create([
                     'pembelian_id' => $pembelian->id,
-                    'produk_id'    => $produk->id,
-                    'harga_beli'   => $item['harga_beli'],
-                    'qty'          => $item['qty'],
-                    'kena_pajak'   => $item['kena_pajak'] ?? false,
+                    'produk_id' => $produk->id,
+                    'harga_beli' => $item['harga_beli'],
+                    'qty' => $item['qty'],
+                    'kena_pajak' => $item['kena_pajak'],
                 ]);
 
                 $produkSupplier = ProdukSupplier::firstOrCreate(
@@ -161,15 +135,15 @@ class Form extends Component
 
 
                 PergerakanStok::create([
-                    'produk_id'          => $produk->id,
-                    'tanggal'            => $this->tanggal,
+                    'produk_id' => $produk->id,
+                    'tanggal' => $this->tanggal,
                     'produk_supplier_id' => $produkSupplier->id,
-                    'tipe'               => 'masuk',
-                    'qty'                => $item['qty'],
-                    'kena_pajak'         => $item['kena_pajak'] ?? false,
-                    'sumber_type'        => Pembelian::class,
-                    'sumber_id'          => $pembelian->id,
-                    'keterangan'         => 'Pembelian',
+                    'tipe' => 'masuk',
+                    'qty' => $item['qty'],
+                    'kena_pajak' => $item['kena_pajak'],
+                    'sumber_type' => Pembelian::class,
+                    'sumber_id' => $pembelian->id,
+                    'keterangan' => 'Pembelian Barang',
                 ]);
 
                 if ($produkSupplier->harga_beli < $item['harga_beli']) {
@@ -177,34 +151,42 @@ class Form extends Component
                     $produkSupplier->update();
                 }
             }
-            $pembelianId = KategoriKas::where('nama', 'pembelian')->first()->id;
-            TransaksiKas::create([
-                'akun_kas_id' => 1,
-                'tanggal'     => $this->tanggal,
-                'tipe'        => 'keluar',
-                'kategori_id' => $pembelianId,
-                'jumlah'      => $pembelian->total,
-                'keterangan'  => 'Pembelian #' . $pembelian->no_faktur,
-                'sumber_type' => Pembelian::class,
-                'sumber_id'   => $pembelian->id,
-            ]);
-        });
 
-        $this->resetForm();
+            // === PEMBAYARAN ===
+            // Tunai → buat transaksi kas
+            // Kredit → tidak buat transaksi kas
+            if ($this->metodeBayar === 'cash') {
+                $kategori = KategoriKas::where('nama', 'Pembelian')->first();
 
-        return $this->dispatch(
-            'toast',
-            type: 'success',
-            message: 'Pembelian berhasil disimpan!'
-        );
+                TransaksiKas::create([
+                    'akun_kas_id' => 1,
+                    'tanggal' => $this->tanggal,
+                    'tipe' => 'keluar',
+                    'kategori_id' => $kategori?->id,
+                    'jumlah' => $pembelian->total,
+                    'keterangan' => 'Pembelian #' . $pembelian->no_faktur,
+                    'sumber_type' => Pembelian::class,
+                    'sumber_id' => $pembelian->id,
+                ]);
+            }
+
+            DB::commit();
+            $this->resetForm();
+            $this->dispatch('toast', type: 'success', message: 'Pembelian berhasil disimpan!');
+        } catch (\Throwable $e) {
+            DB::rollBack();
+            report($e);
+            $this->dispatch('toast', type: 'error', message: 'Gagal simpan: ' . $e->getMessage());
+        }
     }
+
 
     private function resetForm()
     {
         $this->supplier_id = '';
-        $this->keterangan = '';
-        $this->kenaPajak = false; // reset
         $this->items = [];
+        $this->keterangan = '';
+        $this->kenaPajak = false;
         $this->addItem();
     }
 
