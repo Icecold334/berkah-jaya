@@ -10,6 +10,7 @@ use App\Models\Penjualan;
 use App\Models\KategoriKas;
 use App\Models\TransaksiKas;
 use App\Models\ItemPenjualan;
+use App\Models\Pembelian;
 use App\Models\PergerakanStok;
 use App\Models\PembayaranKredit;
 use Illuminate\Support\Facades\DB;
@@ -159,33 +160,27 @@ class Form extends Component
             foreach ($this->cart as $item) {
                 $produk = Produk::find($item['id']);
                 if (!$produk) continue;
-
                 $qty = $item['qty'];
                 $hargaJual = $item['harga'];
 
                 // 🔸 Cari stok FIFO dari pergerakan_stoks (tipe=masuk)
-                $stokMasuk = PergerakanStok::where('produk_id', $produk->id)
-                    ->where('tipe', 'masuk')
-                    ->whereRaw('(qty - COALESCE(
-                    (SELECT SUM(ps2.qty) FROM pergerakan_stoks ps2 
-                     WHERE ps2.sumber_type = ? 
-                       AND ps2.produk_supplier_id = pergerakan_stoks.produk_supplier_id
-                       AND ps2.produk_id = pergerakan_stoks.produk_id
-                       AND ps2.tipe = "keluar"), 0
-                )) > 0', [Penjualan::class]) // stok tersisa > 0
+                $stokMasuk = PergerakanStok::whereHasMorph('sumber', [Penjualan::class, Pembelian::class], function ($query) {
+                    return $query->where('status', '!=', 'direvisi');
+                })->where('produk_id', $produk->id)
                     ->orderBy('tanggal')
                     ->get();
+
 
                 foreach ($stokMasuk as $stok) {
                     if ($qty <= 0) break;
 
-                    $stokTersisa = $stok->qty - PergerakanStok::where('produk_id', $stok->produk_id)
+                    $stokTersisa = $stok->qty - PergerakanStok::whereHasMorph('sumber', [Penjualan::class, Pembelian::class], function ($query) {
+                        return $query->where('status', '!=', 'direvisi');
+                    })->where('produk_id', $stok->produk_id)
                         ->where('produk_supplier_id', $stok->produk_supplier_id)
                         ->where('tipe', 'keluar')
                         ->sum('qty');
-
                     if ($stokTersisa <= 0) continue;
-
                     $ambil = min($qty, $stokTersisa);
                     $qty -= $ambil;
 
@@ -200,6 +195,7 @@ class Form extends Component
                     ];
                 }
             }
+
 
             // 🔹 Proses tiap kelompok (pajak / non pajak)
             foreach ($grouped as $tipe => $items) {

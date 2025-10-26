@@ -121,6 +121,19 @@ class Form extends Component
                     'kena_pajak' => $item['kena_pajak'],
                 ]);
 
+                $produkSupplier = ProdukSupplier::firstOrCreate(
+                    [
+                        'produk_id'   => $produk->id,
+                        'supplier_id' => $this->supplier_id,
+                        'kena_pajak' => $item['kena_pajak'] ?? false,
+                    ],
+                    [
+                        'harga_beli'                 => 0,
+                        'tanggal_pembelian_terakhir' => $this->tanggal,
+                    ]
+                );
+
+
                 PergerakanStok::create([
                     'produk_id' => $produk->id,
                     'tanggal' => $this->tanggal,
@@ -132,6 +145,11 @@ class Form extends Component
                     'sumber_id' => $pembelian->id,
                     'keterangan' => 'Pembelian Barang',
                 ]);
+
+                if ($produkSupplier->harga_beli < $item['harga_beli']) {
+                    $produkSupplier->harga_beli = $item['harga_beli'];
+                    $produkSupplier->update();
+                }
             }
 
             // === PEMBAYARAN ===
