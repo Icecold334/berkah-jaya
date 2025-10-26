@@ -65,7 +65,7 @@
                         <td class="px-6 py-4 text-left">
                             <div x-data="{
                                 formatted: '',
-                                raw: @entangle('cart.' . $i . '.harga').live,
+                                raw: '{{ $item['harga'] }}',
                                 formatRupiah(angka) {
                                     if (!angka) return '';
                                     return 'Rp ' + angka.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
@@ -76,14 +76,16 @@
                                 updateValue(e) {
                                     this.raw = this.unformat(e.target.value);
                                     this.formatted = this.formatRupiah(this.raw);
+                                    $wire.set('cart.{{ $i }}.harga', this.raw);
                                 }
                             }" x-init="formatted = formatRupiah(raw);
                             $watch('raw', val => formatted = formatRupiah(val));">
                                 <input type="text" x-model="formatted" x-on:input="updateValue($event)"
                                     inputmode="numeric" placeholder="Rp 0"
-                                    class="bg-gray-50 border border-gray-300 text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block w-full p-2 text-right font-medium tracking-wide" />
+                                    class="bg-gray-50 border border-gray-300 text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block w-full p-2 text-right font-medium tracking-wide">
                             </div>
                         </td>
+
                         <td class="px-6 py-4">
                             Rp {{ number_format($item['qty'] * $item['harga'], 0, ',', '.') }}
                         </td>
