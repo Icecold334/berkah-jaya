@@ -6,6 +6,7 @@ use App\Models\Pembelian;
 use App\Models\Penjualan;
 use App\Models\ItemPembelian;
 use App\Models\ItemPenjualan;
+use App\Models\KategoriKas;
 use App\Models\PergerakanStok;
 use App\Models\TransaksiKas;
 use Illuminate\Support\Facades\DB;
@@ -29,7 +30,6 @@ class RevisiService
       $stokBaruTipe     = $isPembelian ? 'masuk' : 'keluar';
       $kasRollbackTipe  = $isPembelian ? 'masuk' : 'keluar';
       $kasBaruTipe      = $isPembelian ? 'keluar' : 'masuk';
-
       // 1️⃣ rollback stok
       foreach ($transaksiLama->items as $item) {
         PergerakanStok::create([
@@ -50,8 +50,9 @@ class RevisiService
         'akun_kas_id' => $dataBaru['akun_kas_id'] ?? 1,
         'tanggal' => now(),
         'tipe' => $kasRollbackTipe,
+        'kategori_id' => 4, // revisi keluar
         'jumlah' => $transaksiLama->total,
-        'keterangan' => "Rollback revisi {$tipe}",
+        'keterangan' => "Rollback revisi {$tipe} #" . $transaksiLama->no_faktur ?? $transaksiLama->no_struk,
         'sumber_type' => $Model,
         'sumber_id' => $transaksiLama->id,
       ]);
@@ -96,7 +97,8 @@ class RevisiService
         'tanggal' => $dataBaru['tanggal'],
         'tipe' => $kasBaruTipe,
         'jumlah' => $dataBaru['total'],
-        'keterangan' => ucfirst($tipe) . ' hasil revisi',
+        'kategori_id' => 3, // revisi masuk
+        'keterangan' => ucfirst($tipe) . ' hasil revisi #' . $transaksiLama->no_faktur ?? $transaksiLama->no_struk,
         'sumber_type' => $Model,
         'sumber_id' => $transaksiBaru->id,
       ]);

@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\Relations\MorphOne;
 class Pembelian extends Model
 {
     protected $table = 'pembelians';
-    protected $fillable = ['no_faktur', 'supplier_id', 'tanggal', 'total', 'keterangan', 'kena_pajak', 'status'];
+    protected $fillable = ['no_faktur', 'supplier_id', 'tanggal', 'total', 'keterangan', 'kena_pajak', 'status', 'revisi_dari_id'];
 
     protected static function booted()
     {

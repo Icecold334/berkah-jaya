@@ -43,7 +43,7 @@ class ListData extends Component
 
     private function hitungStok($produkId, $pajak = true)
     {
-        $produk = \App\Models\Produk::with([
+        $produk = Produk::with([
             'itemPembelians.pembelian',
             'itemPenjualans.penjualan',
         ])->find($produkId);
@@ -51,14 +51,21 @@ class ListData extends Component
         $stok = 0;
 
         // stok masuk dari pembelian
-        foreach ($produk->itemPembelians as $item) {
+        foreach (
+            $produk->itemPembelians()->whereHas('pembelian', function ($pembelian) {
+                return $pembelian->where('status', '!=', 'direvisi');
+            })->get() as $item
+        ) {
             if ($item->pembelian && $item->pembelian->kena_pajak == $pajak) {
                 $stok += $item->qty; // pembelian = stok masuk
             }
         }
-
         // stok keluar dari penjualan
-        foreach ($produk->itemPenjualans as $item) {
+        foreach (
+            $produk->itemPenjualans()->whereHas('penjualan', function ($penjualan) {
+                return $penjualan->where('status', '!=', 'direvisi');
+            })->get() as $item
+        ) {
             if ($item->penjualan && $item->penjualan->kena_pajak == $pajak) {
                 $stok -= $item->qty; // penjualan = stok keluar
             }
@@ -71,7 +78,11 @@ class ListData extends Component
 
     private function hitungHargaJual($produk)
     {
-        $maxHarga = $produk->suppliers()->max('harga_beli');
+        $maxHarga =  $produk->suppliers()
+            ->orderByDesc('harga_beli')
+            ->orderByDesc('kena_pajak') // kalau harga sama, pilih yang kena pajak
+            ->first()->pivot->harga_beli;
+
         if (!$maxHarga) return 0;
 
         $kenaPajak = $produk->suppliers()
@@ -103,7 +114,9 @@ class ListData extends Component
         if ($this->detailProdukId) {
             $detail = Produk::find($this->detailProdukId);
 
-            $pergerakan = PergerakanStok::with('sumber')
+            $pergerakan = PergerakanStok::whereHasMorph('sumber', [Penjualan::class, Pembelian::class], function ($query) {
+                return $query->where('status', '!=', 'direvisi');
+            })->with('sumber')
                 ->where('produk_id', $this->detailProdukId)
                 ->orderByDesc('id')
                 ->paginate(10, ['*'], 'pergerakanPage');

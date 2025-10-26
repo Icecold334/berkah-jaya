@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\Relations\MorphOne;
 class Penjualan extends Model
 {
     protected $table = 'penjualans';
-    protected $fillable = ['customer_id', 'tanggal', 'total', 'no_struk', 'kena_pajak', 'status'];
+    protected $fillable = ['customer_id', 'tanggal', 'total', 'no_struk', 'kena_pajak', 'status', 'revisi_dari_id'];
 
     protected static function booted()
     {
