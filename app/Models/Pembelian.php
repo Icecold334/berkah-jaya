@@ -55,7 +55,7 @@ class Pembelian extends Model
     // Pembelian terkait ke transaksi kas (polymorphic)
     public function transaksiKas()
     {
-        return $this->hasOne(TransaksiKas::class, 'sumber_id')
+        return $this->hasMany(TransaksiKas::class, 'sumber_id')
             ->where('sumber_type', self::class);
     }
 
@@ -83,7 +83,7 @@ class Pembelian extends Model
     {
         return max(0, $this->total - $this->total_dibayar);
     }
-    
+
     // Pembelian terkait ke pergerakan stok (polymorphic)
     public function pergerakanStok()
     {

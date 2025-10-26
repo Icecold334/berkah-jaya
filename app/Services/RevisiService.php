@@ -46,16 +46,18 @@ class RevisiService
       }
 
       // 2️⃣ rollback kas
-      TransaksiKas::create([
-        'akun_kas_id' => $dataBaru['akun_kas_id'] ?? 1,
-        'tanggal' => now(),
-        'tipe' => $kasRollbackTipe,
-        'kategori_id' => 4, // revisi keluar
-        'jumlah' => $transaksiLama->total,
-        'keterangan' => "Rollback revisi {$tipe} #" . $transaksiLama->no_faktur ?? $transaksiLama->no_struk,
-        'sumber_type' => $Model,
-        'sumber_id' => $transaksiLama->id,
-      ]);
+      if ($transaksiLama->transaksiKas->sum('jumlah')) {
+        TransaksiKas::create([
+          'akun_kas_id' => $dataBaru['akun_kas_id'] ?? 1,
+          'tanggal' => now(),
+          'tipe' => $kasRollbackTipe,
+          'kategori_id' => 4, // revisi keluar
+          'jumlah' => $transaksiLama->transaksiKas->sum('jumlah'),
+          'keterangan' => "Rollback revisi {$tipe} #" . $transaksiLama->no_faktur ?? $transaksiLama->no_struk,
+          'sumber_type' => $Model,
+          'sumber_id' => $transaksiLama->id,
+        ]);
+      }
 
       // 3️⃣ tandai transaksi lama direvisi
       $transaksiLama->update(['status' => 'direvisi']);
@@ -92,16 +94,18 @@ class RevisiService
       }
 
       // 6️⃣ kas baru
-      TransaksiKas::create([
-        'akun_kas_id' => $dataBaru['akun_kas_id'] ?? 1,
-        'tanggal' => $dataBaru['tanggal'],
-        'tipe' => $kasBaruTipe,
-        'jumlah' => $dataBaru['total'],
-        'kategori_id' => 3, // revisi masuk
-        'keterangan' => ucfirst($tipe) . ' hasil revisi #' . $transaksiLama->no_faktur ?? $transaksiLama->no_struk,
-        'sumber_type' => $Model,
-        'sumber_id' => $transaksiBaru->id,
-      ]);
+      foreach ($transaksiLama->transaksiKas as $transaksi) {
+        TransaksiKas::create([
+          'akun_kas_id' => $dataBaru['akun_kas_id'] ?? 1,
+          'tanggal' => $dataBaru['tanggal'],
+          'tipe' => $kasBaruTipe,
+          'jumlah' => $transaksi->jumlah,
+          'kategori_id' => 3, // revisi masuk
+          'keterangan' => ucfirst($tipe) . ' hasil revisi #' . $transaksiLama->no_faktur ?? $transaksiLama->no_struk,
+          'sumber_type' => $Model,
+          'sumber_id' => $transaksiBaru->id,
+        ]);
+      }
 
       return $transaksiBaru;
     });
