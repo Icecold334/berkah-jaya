@@ -35,6 +35,29 @@ class Form extends Component
 
     public $totalPreview;
 
+    public function updatedItems($value, $key)
+    {
+        // deteksi field mana yang berubah, misal items.0.nama
+        if (Str::endsWith($key, '.nama')) {
+            $index = explode('.', $key)[0];
+            $nama = $this->items[$index]['nama'] ?? '';
+
+            $slug = Str::slug($nama);
+            if (strlen($nama)) {
+                $this->searchResults[$index] = Produk::where('slug', 'like', "%{$slug}%")
+                    ->limit(5)
+                    ->pluck('nama')
+                    ->toArray();
+            } else {
+                $this->searchResults[$index] = [];
+            }
+        }
+    }
+    public function pilihProduk($index, $nama)
+    {
+        $this->items[$index]['nama'] = $nama;
+        $this->searchResults[$index] = []; // tutup dropdown setelah pilih
+    }
     public function mount()
     {
         $this->tanggal = now()->format('Y-m-d');

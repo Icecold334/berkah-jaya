@@ -6,11 +6,13 @@ use App\Models\Produk;
 use App\Models\Piutang;
 use App\Models\Setting;
 use Livewire\Component;
+use App\Models\Customer;
+use App\Models\Pembelian;
 use App\Models\Penjualan;
 use App\Models\KategoriKas;
+use Illuminate\Support\Str;
 use App\Models\TransaksiKas;
 use App\Models\ItemPenjualan;
-use App\Models\Pembelian;
 use App\Models\PergerakanStok;
 use App\Models\PembayaranKredit;
 use Illuminate\Support\Facades\DB;
@@ -26,7 +28,70 @@ class Form extends Component
     public $showFinalConfirmModal = false;
     public $metodeBayar = null;
     public $totalPreview;
+    public $customerInput = ''; // input teks customer
+    public $customerList = [];  // hasil pencarian suggestion
 
+    public function updatedCustomerInput()
+    {
+        // Reset dulu ID setiap kali user ubah input manual
+        $this->customer_id = null;
+
+        $input = trim($this->customerInput);
+
+        // Kalau input kosong / terlalu pendek → kosongkan list
+        if (strlen($input) < 2) {
+            $this->customerList = [];
+            return;
+        }
+
+        // 🔹 Ambil daftar suggestion customer (autocomplete)
+        $this->customerList = Customer::select('id', 'nama')
+            ->where('nama', 'like', '%' . $input . '%')
+            ->orderBy('nama')
+            ->limit(10)
+            ->get()
+            ->toArray();
+
+        // 🔹 Cek apakah input cocok persis dengan customer lama (by slug)
+        //    — slug lebih aman untuk pencocokan nama unik & konsisten
+        $slug = \Illuminate\Support\Str::slug($input);
+        $match = Customer::where('slug', $slug)->first();
+
+        if ($match) {
+            $this->customer_id = $match->id; // ✅ auto set kalau slug cocok
+        }
+    }
+
+
+
+
+    public function pilihCustomer($id)
+    {
+        $customer = Customer::find($id);
+        if ($customer) {
+            $this->customer_id = $customer->id;
+            $this->customerInput = $customer->nama;
+            $this->customerList = [];
+        }
+    }
+
+    protected function resolveCustomer()
+    {
+        // Kalau kosong, boleh null
+        if (empty($this->customerInput)) {
+            return null;
+        }
+
+        // Buat slug unik
+        $slug = Str::slug($this->customerInput);
+
+        $customer = Customer::firstOrCreate(
+            ['slug' => $slug],
+            ['nama' => trim($this->customerInput)]
+        );
+
+        return $customer->id;
+    }
     public function konfirmasiSimpan()
     {
         if (empty($this->cart)) {
@@ -151,6 +216,7 @@ class Form extends Component
         }
 
         DB::transaction(function () {
+            $this->customer_id = $this->resolveCustomer();
             // 🔹 Kelompokkan hasil cart berdasarkan status pajak
             $grouped = [
                 'pajak' => [],

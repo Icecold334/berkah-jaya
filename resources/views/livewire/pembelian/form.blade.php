@@ -8,19 +8,17 @@
                 class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block w-full p-2.5 shadow-md">
                 <option value="">Pilih Supplier</option>
                 @foreach ($suppliers as $supplier)
-                    <option value="{{ $supplier->id }}">{{ $supplier->nama }}</option>
+                <option value="{{ $supplier->id }}">{{ $supplier->nama }}</option>
                 @endforeach
             </select>
         </div>
 
         <div class="col-span-2">
-            <button type="button" wire:click="togglePajak" @disabled(empty($supplier_id)) @class([
-                'w-full font-medium rounded-lg text-sm px-5 py-2.5 text-center shadow-md',
-                $kenaPajak
-                    ? 'bg-primary-700 text-white focus:ring-primary-300'
-                    : 'border border-primary-700 text-primary-700 focus:ring-primary-300',
-                empty($supplier_id) ? 'cursor-not-allowed opacity-50' : '',
-            ])>
+            <button type="button" wire:click="togglePajak" @disabled(empty($supplier_id))
+                @class([ 'w-full font-medium rounded-lg text-sm px-5 py-2.5 text-center shadow-md' , $kenaPajak
+                ? 'bg-primary-700 text-white focus:ring-primary-300'
+                : 'border border-primary-700 text-primary-700 focus:ring-primary-300' , empty($supplier_id)
+                ? 'cursor-not-allowed opacity-50' : '' , ])>
                 {{ $kenaPajak ? 'Pakai Pajak' : 'Tanpa Pajak' }}
             </button>
         </div>
@@ -43,42 +41,40 @@
 
             <tbody>
                 @foreach ($items as $index => $item)
-                    <tr class="odd:bg-white even:bg-gray-50 border-b border-gray-200">
-                        <td class="px-6 py-4 font-medium">{{ $index + 1 }}</td>
+                <tr class="odd:bg-white even:bg-gray-50 border-b border-gray-200">
+                    <td class="px-6 py-4 font-medium">{{ $index + 1 }}</td>
 
-                        {{-- Input Nama Barang --}}
-                        <td class="px-6 py-4 text-left relative" x-data="{ open: false }">
-                            <input type="text" wire:model.live="items.{{ $index }}.nama"
-                                placeholder="Nama Barang" @focus="open = true"
-                                @blur="setTimeout(() => open = false, 200)" @disabled(empty($supplier_id))
-                                @class([
-                                    'bg-gray-50 border border-gray-300 text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block w-full p-2',
-                                    empty($supplier_id) ? 'cursor-not-allowed opacity-50' : '',
-                                ])>
+                    {{-- Input Nama Barang --}}
+                    <td class="px-6 py-4 text-left relative" x-data="{ open: false }">
+                        <input type="text" wire:model.live.debounce.300ms="items.{{ $index }}.nama"
+                            placeholder="Nama Barang" @focus="open = true" @blur="setTimeout(() => open = false, 200)"
+                            @disabled(empty($supplier_id))
+                            @class([ 'bg-gray-50 border border-gray-300 text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block w-full p-2'
+                            , empty($supplier_id) ? 'cursor-not-allowed opacity-50' : '' , ])>
 
-                            {{-- Dropdown hasil pencarian produk --}}
-                            @if (!empty($searchResults[$index]))
-                                <ul x-show="open" x-transition
-                                    class="absolute z-50 bg-white border border-gray-200 rounded-md shadow-lg max-h-48 overflow-y-auto text-left w-full">
-                                    @foreach ($searchResults[$index] as $namaProduk)
-                                        <li wire:click="pilihProduk({{ $index }}, '{{ addslashes($namaProduk) }}')"
-                                            class="px-3 py-2 cursor-pointer hover:bg-primary-100">
-                                            {{ $namaProduk }}
-                                        </li>
-                                    @endforeach
-                                </ul>
-                            @endif
-                        </td>
+                        {{-- Dropdown hasil pencarian produk --}}
+                        @if (!empty($searchResults[$index]))
+                        <ul x-show="open" x-transition
+                            class="absolute z-50 bg-white border border-gray-200 rounded-md shadow-lg max-h-48 overflow-y-auto text-left w-full">
+                            @foreach ($searchResults[$index] as $namaProduk)
+                            <li wire:click="pilihProduk({{ $index }}, '{{ addslashes($namaProduk) }}')"
+                                class="px-3 py-2 cursor-pointer hover:bg-primary-100">
+                                {{ $namaProduk }}
+                            </li>
+                            @endforeach
+                        </ul>
+                        @endif
+                    </td>
 
-                        {{-- Input Qty --}}
-                        <td class="px-6 py-4 text-left">
-                            <input type="number" wire:model.live="items.{{ $index }}.qty" min="1"
-                                @disabled(empty($supplier_id))
-                                class="bg-gray-50 border border-gray-300 text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block w-full p-2">
-                        </td>
+                    {{-- Input Qty --}}
+                    <td class="px-6 py-4 text-left">
+                        <input type="number" wire:model.live="items.{{ $index }}.qty" min="1"
+                            @disabled(empty($supplier_id))
+                            class="bg-gray-50 border border-gray-300 text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block w-full p-2">
+                    </td>
 
-                        <td class="px-6 py-4 text-left">
-                            <div x-data="{
+                    <td class="px-6 py-4 text-left">
+                        <div x-data="{
                                 formatted: '',
                                 raw: @entangle('items.' . $index . '.harga_beli').live,
                                 formatRupiah(angka) {
@@ -94,30 +90,30 @@
                                 }
                             }" x-init="formatted = formatRupiah(raw);
                             $watch('raw', val => formatted = formatRupiah(val));">
-                                <input type="text" x-model="formatted" x-on:input="updateValue($event)"
-                                    inputmode="numeric" placeholder="Rp 0" @disabled(empty($supplier_id))
-                                    class="bg-gray-50 border border-gray-300 text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block w-full p-2 text-right font-medium tracking-wide">
-                            </div>
-                        </td>
+                            <input type="text" x-model="formatted" x-on:input="updateValue($event)" inputmode="numeric"
+                                placeholder="Rp 0" @disabled(empty($supplier_id))
+                                class="bg-gray-50 border border-gray-300 text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block w-full p-2 text-right font-medium tracking-wide">
+                        </div>
+                    </td>
 
 
-                        {{-- Tombol Tambah/Hapus --}}
-                        <td class="px-6 py-4 flex justify-center items-center gap-3">
-                            @if (count($items) > 1)
-                                <button type="button" wire:click="removeItem({{ $index }})"
-                                    class="bg-danger-100 text-danger-800 text-sm font-medium px-2.5 py-1 rounded-sm">
-                                    <i class="fa-solid fa-trash"></i>
-                                </button>
-                            @endif
+                    {{-- Tombol Tambah/Hapus --}}
+                    <td class="px-6 py-4 flex justify-center items-center gap-3">
+                        @if (count($items) > 1)
+                        <button type="button" wire:click="removeItem({{ $index }})"
+                            class="bg-danger-100 text-danger-800 text-sm font-medium px-2.5 py-1 rounded-sm">
+                            <i class="fa-solid fa-trash"></i>
+                        </button>
+                        @endif
 
-                            @if ($loop->last && !empty($item['nama']) && $item['qty'] > 0 && $item['harga_beli'] > 0)
-                                <button type="button" wire:click="addItem"
-                                    class="bg-primary-100 text-primary-800 text-sm font-medium px-2.5 py-1 rounded-sm">
-                                    <i class="fa-solid fa-plus"></i>
-                                </button>
-                            @endif
-                        </td>
-                    </tr>
+                        @if ($loop->last && !empty($item['nama']) && $item['qty'] > 0 && $item['harga_beli'] > 0)
+                        <button type="button" wire:click="addItem"
+                            class="bg-primary-100 text-primary-800 text-sm font-medium px-2.5 py-1 rounded-sm">
+                            <i class="fa-solid fa-plus"></i>
+                        </button>
+                        @endif
+                    </td>
+                </tr>
                 @endforeach
             </tbody>
         </table>
@@ -127,22 +123,22 @@
     {{-- TOMBOL SIMPAN --}}
     {{-- ===================== --}}
     @php
-        $isValid = collect($items)->every(
-            fn($i) => !empty($i['nama']) &&
-                !empty($i['qty']) &&
-                $i['qty'] > 0 &&
-                !empty($i['harga_beli']) &&
-                $i['harga_beli'] > 0,
-        );
+    $isValid = collect($items)->every(
+    fn($i) => !empty($i['nama']) &&
+    !empty($i['qty']) &&
+    $i['qty'] > 0 &&
+    !empty($i['harga_beli']) &&
+    $i['harga_beli'] > 0,
+    );
     @endphp
 
     @if ($isValid)
-        <div class="mt-4 flex justify-end">
-            <button wire:click="konfirmasiSimpan" type="button"
-                class="text-white bg-primary-700 hover:bg-primary-800 focus:ring-4 focus:outline-none focus:ring-primary-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center shadow-md">
-                Simpan
-            </button>
-        </div>
+    <div class="mt-4 flex justify-end">
+        <button wire:click="konfirmasiSimpan" type="button"
+            class="text-white bg-primary-700 hover:bg-primary-800 focus:ring-4 focus:outline-none focus:ring-primary-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center shadow-md">
+            Simpan
+        </button>
+    </div>
     @endif
 
     {{-- ===================== --}}
@@ -157,8 +153,8 @@
             <h2 class="text-lg font-semibold text-gray-800 mb-4">Konfirmasi Pembelian</h2>
 
             <div class="space-y-2 text-sm text-gray-700">
-                <div class="flex justify-between"><span>Supplier</span><span
-                        class="font-semibold">{{ optional(App\Models\Supplier::find($supplier_id))->nama ?? '-' }}</span>
+                <div class="flex justify-between"><span>Supplier</span><span class="font-semibold">{{
+                        optional(App\Models\Supplier::find($supplier_id))->nama ?? '-' }}</span>
                 </div>
                 <div class="flex justify-between"><span>Tanggal</span><span>{{ $tanggal }}</span></div>
                 <div class="flex justify-between">

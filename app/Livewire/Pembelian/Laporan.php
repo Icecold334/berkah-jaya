@@ -268,6 +268,11 @@ class Laporan extends Component
             "pembelian-{$pembelian->no_faktur}.pdf"
         );
     }
+    public function togglePajak()
+    {
+        $this->form['kena_pajak'] = !$this->form['kena_pajak'];
+    }
+
 
     public function render()
     {
