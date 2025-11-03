@@ -195,10 +195,10 @@
                                 <td class="font-semibold w-1/4 py-1">Tanggal</td>
                                 <td class="py-1">{{ $detail->tanggal->translatedFormat('l, d F Y') }}</td>
                             </tr>
-                            {{-- <tr>
-                            <td class="font-semibold py-1">Customer</td>
-                            <td class="py-1">{{ $detail->customer?->nama ?? '-' }}</td>
-                        </tr> --}}
+                            <tr>
+                                <td class="font-semibold py-1">Customer</td>
+                                <td class="py-1">{{ $detail->customer?->nama ?? '-' }}</td>
+                            </tr>
                             <tr>
                                 <td class="font-semibold py-1">Total</td>
                                 <td class="py-1">Rp {{ number_format($detail->total, 0, ',', '.') }}</td>

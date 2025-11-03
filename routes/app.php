@@ -9,6 +9,7 @@ use App\Http\Controllers\StokController;
 use App\Http\Controllers\AkunKasController;
 use App\Http\Controllers\LaporanController;
 use App\Http\Controllers\SettingController;
+use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\SupplierController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\PembelianController;
@@ -26,5 +27,6 @@ Route::middleware(['auth'])->group(function () {
   Route::get('/supplier', [SupplierController::class, 'index'])->name('supplier.index');
   Route::get('/stok', [StokController::class, 'index'])->name('stok.index');
   Route::get('/kas', [KasController::class, 'index'])->name('kas.index');
+  Route::get('/customer', [CustomerController::class, 'index'])->name('customer.index');
   Route::get('/laporan/{type}', [LaporanController::class, 'index'])->name('laporan.index');
 });

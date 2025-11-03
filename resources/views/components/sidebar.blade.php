@@ -16,6 +16,10 @@
                 Kategori Kas
             </x-sidebar-link>
 
+            <x-sidebar-link :href="route('customer.index')" icon="fa-solid fa-users" :active="request()->routeIs('customer.*')">
+                Customer
+            </x-sidebar-link>
+
             <x-sidebar-link :href="route('kas.index')" icon="fa-solid fa-money-bill-transfer" :active="request()->routeIs('kas.*')">
                 Arus Kas
             </x-sidebar-link>
