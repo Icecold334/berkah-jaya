@@ -54,16 +54,13 @@ class Form extends Component
 
         // 🔹 Cek apakah input cocok persis dengan customer lama (by slug)
         //    — slug lebih aman untuk pencocokan nama unik & konsisten
-        $slug = \Illuminate\Support\Str::slug($input);
+        $slug = Str::slug($input);
         $match = Customer::where('slug', $slug)->first();
 
         if ($match) {
             $this->customer_id = $match->id; // ✅ auto set kalau slug cocok
         }
     }
-
-
-
 
     public function pilihCustomer($id)
     {
