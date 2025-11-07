@@ -40,7 +40,7 @@
                         </td>
                         <td class="px-6 py-4">
                             <div class="flex items-center justify-center gap-2">
-                                @if ($kategori->id > 4)
+                                @if ($kategori->id > 6)
                                 <!-- Tombol Edit -->
                                 <button wire:click="openModal({{ $kategori->id }})"
                                     class="bg-info-100 text-info-800 text-sm font-medium p-2 rounded-sm hover:bg-info-200">
