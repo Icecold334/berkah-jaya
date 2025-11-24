@@ -236,13 +236,13 @@ class Form extends Component
 
                 foreach ($stokMasuk as $stok) {
                     if ($qty <= 0) break;
-
-                    $stokTersisa = $stok->qty - PergerakanStok::whereHasMorph('sumber', [Penjualan::class, Pembelian::class], function ($query) {
-                        return $query->where('status', '!=', 'direvisi');
-                    })->where('produk_id', $stok->produk_id)
-                        ->where('produk_supplier_id', $stok->produk_supplier_id)
-                        ->where('tipe', 'keluar')
-                        ->sum('qty');
+                    // $stokTersisa = $stok->qty - PergerakanStok::whereHasMorph('sumber', [Penjualan::class, Pembelian::class], function ($query) {
+                    //     return $query->where('status', '!=', 'direvisi');
+                    // })->where('produk_id', $stok->produk_id)
+                    //     ->where('produk_supplier_id', $stok->produk_supplier_id)
+                    //     ->where('tipe', 'keluar')
+                    //     ->sum('qty');
+                    $stokTersisa = $this->hitungStok($produk->id, $stok->sumber->kena_pajak);
                     if ($stokTersisa <= 0) continue;
                     $ambil = min($qty, $stokTersisa);
                     $qty -= $ambil;
@@ -330,7 +330,38 @@ class Form extends Component
         return 'INV' . $tanggal . str_pad($countToday, 3, '0', STR_PAD_LEFT);
     }
 
+    private function hitungStok($produkId, $pajak = true)
+    {
+        $produk = Produk::with([
+            'itemPembelians.pembelian',
+            'itemPenjualans.penjualan',
+        ])->find($produkId);
 
+        $stok = 0;
+
+        // stok masuk dari pembelian
+        foreach (
+            $produk->itemPembelians()->whereHas('pembelian', function ($pembelian) {
+                return $pembelian->where('status', '!=', 'direvisi');
+            })->get() as $item
+        ) {
+            if ($item->pembelian && $item->pembelian->kena_pajak == $pajak) {
+                $stok += $item->qty; // pembelian = stok masuk
+            }
+        }
+        // stok keluar dari penjualan
+        foreach (
+            $produk->itemPenjualans()->whereHas('penjualan', function ($penjualan) {
+                return $penjualan->where('status', '!=', 'direvisi');
+            })->get() as $item
+        ) {
+            if ($item->penjualan && $item->penjualan->kena_pajak == $pajak) {
+                $stok -= $item->qty; // penjualan = stok keluar
+            }
+        }
+
+        return $stok;
+    }
 
     public function render()
     {
