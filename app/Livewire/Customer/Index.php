@@ -2,11 +2,13 @@
 
 namespace App\Livewire\Customer;
 
+use App\Models\Produk;
 use Livewire\Component;
 use App\Models\Customer;
 use App\Models\Penjualan;
 use Illuminate\Support\Str;
 use Livewire\WithPagination;
+use App\Models\ItemPenjualan;
 
 class Index extends Component
 {
@@ -31,6 +33,11 @@ class Index extends Component
         'telepon' => 'nullable|string|max:50',
         'alamat' => 'nullable|string|max:500',
     ];
+
+    public $daftarBarang = [];
+    public $selectedProdukId;
+    public $riwayatProduk = [];
+
 
     public function updatingSearch()
     {
@@ -143,47 +150,89 @@ class Index extends Component
         );
     }
 
+    private function hitungHargaJualProduk($produkId)
+    {
+        $produk = Produk::with('suppliers')->find($produkId);
+        if (!$produk) return 0;
+
+        $supplier = $produk->suppliers()
+            ->orderByDesc('harga_beli')
+            ->orderByDesc('kena_pajak')
+            ->first();
+
+        if (!$supplier) return 0;
+
+        $harga = $supplier->pivot->harga_beli;
+        return $supplier->pivot->kena_pajak ? $harga * 1.02 : $harga;
+    }
+
+
     /** 🔍 Lihat daftar pembelian customer */
     public function showDetail($id)
     {
-        $this->detailCustomer = Customer::with(['penjualans' => function ($q) {
-            $q->orderBy('tanggal', 'desc');
-        }])->findOrFail($id);
+        $this->detailCustomer = Customer::findOrFail($id);
 
-        $this->daftarPembelian = $this->detailCustomer->penjualans->map(function ($p) {
+        $items = ItemPenjualan::with(['produk', 'penjualan'])
+            ->whereHas('penjualan', function ($q) use ($id) {
+                $q->where('customer_id', $id)
+                    ->where('status', 'aktif');
+            })
+            ->get();
+
+        $grouped = $items->groupBy('produk_id');
+
+        $this->daftarBarang = $grouped->map(function ($rows, $produkId) {
+            $first = $rows->first();
+            $produk = $first?->produk;
+
+            // ambil item terbaru berdasarkan tanggal penjualan (fallback created_at)
+            $latestItem = $rows->sortByDesc(function ($r) {
+                return $r->penjualan?->tanggal ?? $r->created_at;
+            })->first();
+
             return [
-                'id' => $p->id,
-                'no_struk' => $p->no_struk,
-                'tanggal' => $p->tanggal?->format('d/m/Y'),
-                'total' => $p->total,
-                'status' => $p->status,
-                'is_lunas' => $p->is_lunas,
-                'sisa_bayar' => $p->sisa_bayar,
+                'produk_id'     => $produkId,
+                'nama_produk'   => $produk?->nama ?? '-',
+                'harga_terbaru' => (int) $this->hitungHargaJualProduk($produkId), // ← FIX
+                'total_qty'     => (int) $rows->sum('qty'),
             ];
-        });
+        })->values()->toArray();
 
         $this->dispatch('open-detail-modal');
     }
 
-    public function showItemDetail($penjualanId)
+
+    public function showItemDetail($produkId)
     {
-        $penjualan = Penjualan::with('items.produk')->findOrFail($penjualanId);
+        $this->selectedProdukId = $produkId;
+
+        $items = ItemPenjualan::query()
+            ->with(['penjualan', 'produk'])
+            ->join('penjualans', 'penjualans.id', '=', 'item_penjualans.penjualan_id')
+            ->where('item_penjualans.produk_id', $produkId)
+            ->where('penjualans.customer_id', $this->detailCustomer->id)
+            ->where('penjualans.status', 'aktif')
+            ->orderByDesc('penjualans.tanggal')
+            ->select('item_penjualans.*') // penting: biar modelnya tetap ItemPenjualan
+            ->get();
+
+        $namaProduk = $items->first()?->produk?->nama ?? '-';
+
+        $this->detailItems = $items->map(function ($item) {
+            return [
+                'tanggal'    => optional($item->penjualan?->tanggal)->format('d/m/Y') ?? '-',
+                'no_struk'   => $item->penjualan?->no_struk ?? '-',
+                'nama_produk' => $item->produk?->nama ?? '-',
+                'qty'        => (int) $item->qty,
+                'harga'      => (int) $item->harga_jual,
+                'subtotal'   => (int) ($item->qty * $item->harga_jual),
+            ];
+        })->toArray();
 
         $this->detailPenjualan = [
-            'no_struk' => $penjualan->no_struk,
-            'tanggal' => $penjualan->tanggal?->format('d/m/Y'),
-            'total' => $penjualan->total,
+            'nama_produk' => $namaProduk,
+            'total'       => array_sum(array_column($this->detailItems, 'subtotal')),
         ];
-
-        // Ambil daftar item
-        $this->detailItems = $penjualan->items->map(function ($item) {
-            return [
-                'nama_produk' => $item->produk->nama ?? 'Tidak diketahui',
-                'qty' => $item->qty,
-                'harga' => $item->harga_jual,
-                'subtotal' => $item->harga_jual * $item->qty,
-            ];
-        });
 
         $this->dispatch('open-item-modal');
     }
