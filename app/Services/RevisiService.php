@@ -4,65 +4,160 @@ namespace App\Services;
 
 use App\Models\Pembelian;
 use App\Models\Penjualan;
+use App\Models\TransaksiKas;
 use App\Models\ItemPembelian;
 use App\Models\ItemPenjualan;
-use App\Models\KategoriKas;
 use App\Models\PergerakanStok;
-use App\Models\TransaksiKas;
+use App\Models\ProdukSupplier;
 use Illuminate\Support\Facades\DB;
 
 class RevisiService
 {
-  /**
-   * Revisi transaksi modular untuk pembelian / penjualan.
-   */
   public static function revisiTransaksi(string $tipe, $transaksiLama, array $dataBaru)
   {
     return DB::transaction(function () use ($tipe, $transaksiLama, $dataBaru) {
 
-      // tentukan arah stok & kas berdasarkan tipe
       $isPembelian = $tipe === 'pembelian';
       $Model = $isPembelian ? Pembelian::class : Penjualan::class;
-      // $itemRelation = $isPembelian ? 'itemPembelians' : 'itemPenjualans';
 
-      // arah stok & kas
       $stokRollbackTipe = $isPembelian ? 'keluar' : 'masuk';
-      $stokBaruTipe     = $isPembelian ? 'masuk' : 'keluar';
-      $kasRollbackTipe  = $isPembelian ? 'masuk' : 'keluar';
-      $kasBaruTipe      = $isPembelian ? 'keluar' : 'masuk';
-      // 1️⃣ rollback stok
+      $stokBaruTipe = $isPembelian ? 'masuk' : 'keluar';
+      $kasRollbackTipe = $isPembelian ? 'masuk' : 'keluar';
+      $kasBaruTipe = $isPembelian ? 'keluar' : 'masuk';
+
+      /*
+       | =====================================================
+       | 1. HITUNG QTY PEMBELIAN YANG SUDAH KEPAKAI JUAL
+       | =====================================================
+       */
+      $stokTerpakai = PergerakanStok::where('sumber_type', Penjualan::class)
+        ->whereIn('produk_id', $transaksiLama->items->pluck('produk_id'))
+        ->where('tipe', 'keluar')
+        ->get()
+        ->groupBy(fn($x) => $x->produk_id . '-' . ($x->kena_pajak ? 'P' : 'TP'))
+        ->map(fn($g) => $g->sum('qty'));
+
+      /*
+       | =====================================================
+       | 2. ROLLBACK STOK PEMBELIAN (HANYA SISA)
+       | =====================================================
+       */
       foreach ($transaksiLama->items as $item) {
+
+        $key = $item->produk_id . '-' . ($item->kena_pajak ? 'P' : 'TP');
+        $qtyTerpakai = $stokTerpakai[$key] ?? 0;
+        $sisa = max(0, $item->qty - $qtyTerpakai);
+        if ($sisa > 0 && false) {
+          PergerakanStok::create([
+            'produk_id' => $item->produk_id,
+            'produk_supplier_id' => $item->produk_supplier_id,
+            'tanggal' => now(),
+            'tipe' => $stokRollbackTipe,
+            'qty' => $sisa,
+            'kena_pajak' => $item->kena_pajak,
+            'sumber_type' => $Model,
+            'sumber_id' => $transaksiLama->id,
+            'keterangan' => 'Rollback sisa stok pembelian direvisi',
+          ]);
+        }
+      }
+
+      /*
+       | =====================================================
+       | 3. ROLLBACK & PINDAHKAN PENJUALAN KE PAJAK BARU
+       | =====================================================
+       */
+      $penjualanStok = PergerakanStok::where('sumber_type', Penjualan::class)
+        ->whereIn('produk_id', $transaksiLama->items->pluck('produk_id'))
+        ->where('tipe', 'keluar')
+        ->get();
+
+
+      foreach ($penjualanStok as $ps) {
+        // dd(collect($dataBaru['items'])->where('produk_id', $ps->produk_id)->first()['harga_beli']);
+        $produkSupplierOld = ProdukSupplier::updateOrCreate(
+          [
+            'produk_id' => $ps->produk_id,
+            'supplier_id' => $dataBaru['supplier_id'],
+            'kena_pajak' => $transaksiLama->kena_pajak ?? false,
+          ],
+          [
+            'harga_beli' => collect($dataBaru['items'])->where('produk_id', $ps->produk_id)->first()['harga_beli'],
+            'tanggal_pembelian_terakhir' => now(),
+          ]
+        );
+
+        // rollback stok penjualan lama
         PergerakanStok::create([
-          'produk_id' => $item->produk_id,
-          'produk_supplier_id' => $item->produk_supplier_id ?? null,
+          'produk_id' => $ps->produk_id,
+          'produk_supplier_id' => $produkSupplierOld->id,
           'tanggal' => now(),
-          'tipe' => $stokRollbackTipe,
-          'qty' => $item->qty,
-          'sumber_type' => $Model,
-          'sumber_id' => $transaksiLama->id,
-          'kena_pajak' => $item->kena_pajak,
-          'keterangan' => "Rollback revisi {$tipe}",
+          'tipe' => 'masuk',
+          'qty' => $ps->qty,
+          'kena_pajak' => $ps->kena_pajak,
+          'sumber_type' => Penjualan::class,
+          'sumber_id' => $ps->sumber_id,
+          'keterangan' => 'Rollback penjualan akibat revisi pembelian',
+        ]);
+
+        $produkSupplierNew = ProdukSupplier::updateOrCreate(
+          [
+            'produk_id' => $ps->produk_id,
+            'supplier_id' => $dataBaru['supplier_id'],
+            'kena_pajak' => $transaksiLama->kena_pajak ?? false,
+          ],
+          [
+            'harga_beli' => collect($dataBaru['items'])->where('produk_id', $ps->produk_id)->first()['harga_beli'],
+            'tanggal_pembelian_terakhir' => now(),
+          ]
+        );
+        // keluarkan ulang stok pakai pajak baru
+        PergerakanStok::create([
+          'produk_id' => $ps->produk_id,
+          'produk_supplier_id' => $produkSupplierNew->id,
+          'tanggal' => now(),
+          'tipe' => 'keluar',
+          'qty' => $ps->qty,
+          'kena_pajak' => $dataBaru['kena_pajak'] ?? false,
+          'sumber_type' => Penjualan::class,
+          'sumber_id' => $ps->sumber_id,
+          'keterangan' => 'Penjualan dialihkan ke stok hasil revisi',
         ]);
       }
 
-      // 2️⃣ rollback kas
-      if ($transaksiLama->transaksiKas->sum('jumlah')) {
+      /*
+       | =====================================================
+       | 4. ROLLBACK KAS
+       | =====================================================
+       */
+      $jumlahKas = $transaksiLama->transaksiKas->sum('jumlah');
+      if ($jumlahKas > 0) {
         TransaksiKas::create([
           'akun_kas_id' => $dataBaru['akun_kas_id'] ?? 1,
           'tanggal' => now(),
           'tipe' => $kasRollbackTipe,
-          'kategori_id' => 4, // revisi keluar
-          'jumlah' => $transaksiLama->transaksiKas->sum('jumlah'),
-          'keterangan' => "Rollback revisi {$tipe} #" . $transaksiLama->no_faktur ?? $transaksiLama->no_struk,
+          'kategori_id' => 4,
+          'jumlah' => $jumlahKas,
+          'keterangan' => 'Rollback revisi ' . $tipe,
           'sumber_type' => $Model,
           'sumber_id' => $transaksiLama->id,
         ]);
       }
 
-      // 3️⃣ tandai transaksi lama direvisi
+      /*
+       | =====================================================
+       | 5. TANDAI TRANSAKSI LAMA
+       | =====================================================
+       */
       $transaksiLama->update(['status' => 'direvisi']);
-      // 4️⃣ buat transaksi baru
+
+      /*
+       | =====================================================
+       | 6. TRANSAKSI BARU
+       | =====================================================
+       */
       $kolomUtama = $isPembelian ? 'supplier_id' : 'customer_id';
+
       $transaksiBaru = $Model::create([
         $kolomUtama => $dataBaru[$kolomUtama],
         'tanggal' => $dataBaru['tanggal'],
@@ -73,35 +168,45 @@ class RevisiService
         'revisi_dari_id' => $transaksiLama->id,
       ]);
 
-      // 5️⃣ buat item & stok baru
+      /*
+       | =====================================================
+       | 7. ITEM & STOK BARU
+       | =====================================================
+       */
       $ItemModel = $isPembelian ? ItemPembelian::class : ItemPenjualan::class;
+
       foreach ($dataBaru['items'] as $item) {
+
         $ItemModel::create(array_merge($item, [
-          $isPembelian ? 'pembelian_id' : 'penjualan_id' => $transaksiBaru->id
+          $isPembelian ? 'pembelian_id' : 'penjualan_id' => $transaksiBaru->id,
         ]));
 
-        PergerakanStok::create([
-          'produk_id' => $item['produk_id'],
-          'produk_supplier_id' => $item['produk_supplier_id'] ?? null,
-          'tanggal' => $dataBaru['tanggal'],
-          'tipe' => $stokBaruTipe,
-          'qty' => $item['qty'],
-          'sumber_type' => $Model,
-          'sumber_id' => $transaksiBaru->id,
-          'kena_pajak' => $item['kena_pajak'] ?? false,
-          'keterangan' => "Stok {$stokBaruTipe} hasil revisi {$tipe}",
-        ]);
+        // PergerakanStok::create([
+        //   'produk_id' => $item['produk_id'],
+        //   'produk_supplier_id' => $item['produk_supplier_id'] ?? null,
+        //   'tanggal' => $dataBaru['tanggal'],
+        //   'tipe' => $stokBaruTipe,
+        //   'qty' => $item['qty'],
+        //   'kena_pajak' => $item['kena_pajak'] ?? false,
+        //   'sumber_type' => $Model,
+        //   'sumber_id' => $transaksiBaru->id,
+        //   'keterangan' => 'Stok hasil revisi ' . $tipe,
+        // ]);
       }
 
-      // 6️⃣ kas baru
-      foreach ($transaksiLama->transaksiKas as $transaksi) {
+      /*
+       | =====================================================
+       | 8. KAS BARU
+       | =====================================================
+       */
+      foreach ($transaksiLama->transaksiKas as $kas) {
         TransaksiKas::create([
           'akun_kas_id' => $dataBaru['akun_kas_id'] ?? 1,
           'tanggal' => $dataBaru['tanggal'],
           'tipe' => $kasBaruTipe,
-          'jumlah' => $transaksi->jumlah,
-          'kategori_id' => 3, // revisi masuk
-          'keterangan' => ucfirst($tipe) . ' hasil revisi #' . $transaksiLama->no_faktur ?? $transaksiLama->no_struk,
+          'jumlah' => $kas->jumlah,
+          'kategori_id' => 3,
+          'keterangan' => ucfirst($tipe) . ' hasil revisi',
           'sumber_type' => $Model,
           'sumber_id' => $transaksiBaru->id,
         ]);
