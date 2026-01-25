@@ -37,7 +37,7 @@ class Index extends Component
     public $daftarBarang = [];
     public $selectedProdukId;
     public $riwayatProduk = [];
-
+    public $detailInvoice;
 
     public function updatingSearch()
     {
@@ -201,38 +201,41 @@ class Index extends Component
         $this->dispatch('open-detail-modal');
     }
 
-
-    public function showItemDetail($produkId)
+    public function showDaftarPembelian($customerId)
     {
-        $this->selectedProdukId = $produkId;
+        $this->detailCustomer = Customer::findOrFail($customerId);
 
-        $items = ItemPenjualan::query()
-            ->with(['penjualan', 'produk'])
-            ->join('penjualans', 'penjualans.id', '=', 'item_penjualans.penjualan_id')
-            ->where('item_penjualans.produk_id', $produkId)
-            ->where('penjualans.customer_id', $this->detailCustomer->id)
-            ->where('penjualans.status', 'aktif')
-            ->orderByDesc('penjualans.tanggal')
-            ->select('item_penjualans.*') // penting: biar modelnya tetap ItemPenjualan
-            ->get();
+        $this->daftarPembelian = Penjualan::where('customer_id', $customerId)
+            ->where('status', 'aktif')
+            ->orderByDesc('tanggal')
+            ->get()
+            ->map(fn($p) => [
+                'id'         => $p->id,
+                'no_struk'   => $p->no_struk,
+                'tanggal'    => optional($p->tanggal)->format('d/m/Y'),
+                'total'      => (int) $p->total,
+                'is_lunas'   => $p->is_lunas,
+                'sisa_bayar' => (int) $p->sisa_bayar,
+            ])
+            ->toArray();
 
-        $namaProduk = $items->first()?->produk?->nama ?? '-';
+        $this->dispatch('open-daftar-pembelian-modal');
+    }
 
-        $this->detailItems = $items->map(function ($item) {
-            return [
-                'tanggal'    => optional($item->penjualan?->tanggal)->format('d/m/Y') ?? '-',
-                'no_struk'   => $item->penjualan?->no_struk ?? '-',
-                'nama_produk' => $item->produk?->nama ?? '-',
-                'qty'        => (int) $item->qty,
-                'harga'      => (int) $item->harga_jual,
-                'subtotal'   => (int) ($item->qty * $item->harga_jual),
-            ];
-        })->toArray();
+    public function showItemDetail($penjualanId)
+    {
+        $this->detailInvoice = Penjualan::findOrFail($penjualanId);
 
-        $this->detailPenjualan = [
-            'nama_produk' => $namaProduk,
-            'total'       => array_sum(array_column($this->detailItems, 'subtotal')),
-        ];
+        $this->detailItems = ItemPenjualan::with('produk')
+            ->where('penjualan_id', $penjualanId)
+            ->get()
+            ->map(fn($i) => [
+                'nama_produk' => $i->produk?->nama ?? '-',
+                'qty' => (int) $i->qty,
+                'harga' => (int) $i->harga_jual,
+                'subtotal' => (int) ($i->qty * $i->harga_jual),
+            ])
+            ->toArray();
 
         $this->dispatch('open-item-modal');
     }

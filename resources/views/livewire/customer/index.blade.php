@@ -122,15 +122,15 @@
 
                 <div class="bg-white rounded-md p-6 w-3/4 max-h-[80vh] overflow-y-auto">
                     <h2 class="text-xl font-semibold mb-4">
-                        Produk Pernah Dibeli - {{ $detailCustomer?->nama }}
+                        Pembelian Produk oleh - {{ $detailCustomer?->nama }}
                     </h2>
 
                     <table class="w-full text-sm text-left text-gray-900 border">
                         <thead class="bg-gray-100 text-xs uppercase">
                             <tr>
                                 <th class="px-4 py-2">Nama Produk</th>
-                                <th class="px-4 py-2 text-right">Harga Terbaru</th>
-                                <th class="px-4 py-2 text-center">Total Qty Dibeli</th>
+                                <th class="px-4 py-2 text-right">Harga Barang</th>
+                                {{-- <th class="px-4 py-2 text-center">Total Qty Dibeli</th> --}}
                                 <th class="px-4 py-2 text-center"></th>
                             </tr>
                         </thead>
@@ -142,11 +142,12 @@
                                     <td class="px-4 py-2 text-right">
                                         Rp {{ number_format($barang['harga_terbaru'], 0, ',', '.') }}
                                     </td>
-                                    <td class="px-4 py-2 text-center">{{ $barang['total_qty'] }}</td>
+                                    {{-- <td class="px-4 py-2 text-center">{{ $barang['total_qty'] }}</td> --}}
                                     <td class="px-4 py-2 text-center">
-                                        <button wire:click="showItemDetail('{{ $barang['produk_id'] }}')"
-                                            class="bg-primary-100 text-primary-800 text-xs font-medium px-2 py-1 rounded-sm hover:bg-primary-200">
-                                            Detail Transaksi
+                                        <button wire:click="showDaftarPembelian({{ $detailCustomer->id }})"
+                                            title="Lihat daftar pembelian"
+                                            class="bg-success-100 text-success-800 text-sm font-medium p-2 rounded-sm hover:bg-success-200">
+                                            <i class="fa-solid fa-eye"></i>
                                         </button>
                                     </td>
                                 </tr>
@@ -168,9 +169,82 @@
             </div>
         </div>
 
+        <div x-data="{ open: false }" x-on:open-daftar-pembelian-modal.window="open = true" x-cloak>
+
+            <div x-show="open"
+                class="fixed inset-0 z-50 flex items-center justify-center bg-black/25 backdrop-blur-md">
+                <div class="bg-white rounded-md p-6 w-3/4 max-h-[80vh] overflow-y-auto">
+
+                    <h2 class="text-xl font-semibold mb-4">
+                        Daftar Pembelian - {{ $detailCustomer?->nama }}
+                    </h2>
+
+                    <table class="w-full text-sm border">
+                        <thead class="bg-gray-100 text-xs uppercase">
+                            <tr>
+                                <th class="px-4 py-2">No Struk</th>
+                                <th class="px-4 py-2">Tanggal</th>
+                                <th class="px-4 py-2 text-right">Total</th>
+                                <th class="px-4 py-2 text-center">Pelunasan</th>
+                                <th class="px-4 py-2 text-center"></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach ($daftarPembelian as $p)
+                                <tr class="border-b">
+                                    <td class="px-4 py-2">{{ $p['no_struk'] }}</td>
+                                    <td class="px-4 py-2">{{ $p['tanggal'] }}</td>
+                                    <td class="px-4 py-2 text-right">
+                                        Rp {{ number_format($p['total'], 0, ',', '.') }}
+                                    </td>
+                                    <td class="px-4 py-2 text-center relative">
+                                        @if ($p['is_lunas'])
+                                            <span
+                                                class="bg-success-100 text-success-800 text-xs font-semibold px-2.5 py-0.5 rounded">
+                                                Lunas
+                                            </span>
+                                        @else
+                                            <div x-data="{ show: false }" class="inline-block relative">
+                                                <span @mouseenter="show = true" @mouseleave="show = false"
+                                                    class="bg-warning-100 text-warning-800 text-xs font-semibold px-2.5 py-0.5 rounded cursor-help">
+                                                    Belum Lunas
+                                                </span>
+
+                                                {{-- Tooltip --}}
+                                                <div x-show="show" x-transition.opacity.duration.150ms
+                                                    class="absolute left-1/2 -translate-x-1/2 mt-2 w-max
+                                                    bg-gray-800 text-white text-[11px]
+                                                    rounded px-2 py-1 shadow-lg z-50 whitespace-nowrap">
+                                                    Sisa: Rp {{ number_format($p['sisa_bayar'], 0, ',', '.') }}
+                                                </div>
+                                            </div>
+                                        @endif
+                                    </td>
+
+                                    <td class="px-4 py-2 text-center">
+                                        <button wire:click="showItemDetail({{ $p['id'] }})"
+                                            class="bg-info-100 text-info-800 px-2 py-1 rounded text-xs inline-flex items-center gap-1">
+                                            <i class="fa-solid fa-eye"></i>
+                                            Item
+                                        </button>
+                                    </td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+
+                    <div class="text-right mt-4">
+                        <button @click="open=false" class="bg-gray-300 px-4 py-2 rounded">
+                            Tutup
+                        </button>
+                    </div>
+
+                </div>
+            </div>
+        </div>
 
 
-        {{-- Modal Detail Item --}}
+
         {{-- Modal Detail Item --}}
         <div x-data="{ open: false }" x-cloak x-on:open-item-modal.window="open = true"
             x-on:close-item-modal.window="open = false">
@@ -180,15 +254,14 @@
 
                 <div class="bg-white rounded-md p-6 w-2/3 max-h-[80vh] overflow-y-auto">
                     <h2 class="text-lg font-semibold mb-3">
-                        Riwayat Transaksi - {{ $detailPenjualan['nama_produk'] ?? '' }}
+                        Detail Item - {{ $detailPenjualan['nama_produk'] ?? '' }}
                     </h2>
 
                     @if (!empty($detailItems))
-                        <table class="w-full text-sm text-left text-gray-900 border">
+                        <table class="w-full text-sm text-left border">
                             <thead class="bg-gray-100 text-xs uppercase">
                                 <tr>
-                                    <th class="px-4 py-2">Tanggal</th>
-                                    <th class="px-4 py-2">No Struk</th>
+                                    <th class="px-4 py-2">Nama Produk</th>
                                     <th class="px-4 py-2 text-center">Qty</th>
                                     <th class="px-4 py-2 text-right">Harga</th>
                                     <th class="px-4 py-2 text-right">Subtotal</th>
@@ -197,8 +270,7 @@
                             <tbody>
                                 @foreach ($detailItems as $item)
                                     <tr class="border-b">
-                                        <td class="px-4 py-2">{{ $item['tanggal'] }}</td>
-                                        <td class="px-4 py-2">{{ $item['no_struk'] }}</td>
+                                        <td class="px-4 py-2">{{ $item['nama_produk'] }}</td>
                                         <td class="px-4 py-2 text-center">{{ $item['qty'] }}</td>
                                         <td class="px-4 py-2 text-right">
                                             Rp {{ number_format($item['harga'], 0, ',', '.') }}
@@ -211,9 +283,9 @@
                             </tbody>
                             <tfoot>
                                 <tr class="font-semibold bg-gray-50">
-                                    <td colspan="4" class="px-4 py-2 text-right">Total</td>
+                                    <td colspan="3" class="px-4 py-2 text-right">Total</td>
                                     <td class="px-4 py-2 text-right">
-                                        Rp {{ number_format($detailPenjualan['total'] ?? 0, 0, ',', '.') }}
+                                        Rp {{ number_format($detailInvoice?->total ?? 0, 0, ',', '.') }}
                                     </td>
                                 </tr>
                             </tfoot>
