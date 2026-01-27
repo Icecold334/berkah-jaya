@@ -227,28 +227,34 @@ class Form extends Component
                 $hargaJual = $item['harga'];
 
                 // 🔸 Cari stok FIFO dari pergerakan_stoks (tipe=masuk)
-                $stokMasuk = PergerakanStok::whereHasMorph('sumber', [Penjualan::class, Pembelian::class], function ($query) {
-                    return $query->where('status', '!=', 'direvisi');
-                })->where('produk_id', $produk->id)
-                    ->orderBy('tanggal')
-                    ->get();
+                // $stokMasuk = PergerakanStok::whereHasMorph('sumber', [Penjualan::class, Pembelian::class], function ($query) {
+                //     return $query->where('status', '!=', 'direvisi');
+                // })->where('produk_id', $produk->id)
+                //     ->orderBy('tanggal')
+                //     ->get();
 
+                $stokMasuk = PergerakanStok::where('produk_id', $produk->id)
+                    ->where('tipe', 'masuk')
+                    ->whereHasMorph('sumber', [Pembelian::class], function ($q) {
+                        $q->where('status', '!=', 'direvisi');
+                    })
+                    ->orderBy('tanggal')
+                    ->orderBy('id') // penting biar FIFO konsisten
+                    ->get();
 
                 foreach ($stokMasuk as $stok) {
                     if ($qty <= 0) break;
-                    // $stokTersisa = $stok->qty - PergerakanStok::whereHasMorph('sumber', [Penjualan::class, Pembelian::class], function ($query) {
-                    //     return $query->where('status', '!=', 'direvisi');
-                    // })->where('produk_id', $stok->produk_id)
-                    //     ->where('produk_supplier_id', $stok->produk_supplier_id)
-                    //     ->where('tipe', 'keluar')
-                    //     ->sum('qty');
-                    $stokTersisa = $this->hitungStok($produk->id, $stok->sumber->kena_pajak);
-                    if ($stokTersisa <= 0) continue;
-                    $ambil = min($qty, $stokTersisa);
+
+                    $sisaStok = $this->sisaStokBatch($stok);
+
+                    if ($sisaStok <= 0) continue;
+
+                    $ambil = min($qty, $sisaStok);
                     $qty -= $ambil;
 
-                    $kenaPajak = $stok->sumber->kena_pajak ? 'pajak' : 'non_pajak';
-                    $grouped[$kenaPajak][] = [
+                    $tipePajak = $stok->sumber->kena_pajak ? 'pajak' : 'non_pajak';
+
+                    $grouped[$tipePajak][] = [
                         'produk_id' => $produk->id,
                         'produk_supplier_id' => $stok->produk_supplier_id,
                         'qty' => $ambil,
@@ -257,6 +263,31 @@ class Form extends Component
                         'tanggal' => $this->tanggal ?? now(),
                     ];
                 }
+
+
+                // foreach ($stokMasuk as $stok) {
+                //     if ($qty <= 0) break;
+                //     // $stokTersisa = $stok->qty - PergerakanStok::whereHasMorph('sumber', [Penjualan::class, Pembelian::class], function ($query) {
+                //     //     return $query->where('status', '!=', 'direvisi');
+                //     // })->where('produk_id', $stok->produk_id)
+                //     //     ->where('produk_supplier_id', $stok->produk_supplier_id)
+                //     //     ->where('tipe', 'keluar')
+                //     //     ->sum('qty');
+                //     $stokTersisa = $this->hitungStok($produk->id, $stok->sumber->kena_pajak);
+                //     if ($stokTersisa <= 0) continue;
+                //     $ambil = min($qty, $stokTersisa);
+                //     $qty -= $ambil;
+
+                //     $kenaPajak = $stok->sumber->kena_pajak ? 'pajak' : 'non_pajak';
+                //     $grouped[$kenaPajak][] = [
+                //         'produk_id' => $produk->id,
+                //         'produk_supplier_id' => $stok->produk_supplier_id,
+                //         'qty' => $ambil,
+                //         'harga' => $hargaJual,
+                //         'subtotal' => $ambil * $hargaJual,
+                //         'tanggal' => $this->tanggal ?? now(),
+                //     ];
+                // }
             }
 
 
@@ -321,6 +352,17 @@ class Form extends Component
         $this->produkList = [];
         $this->customer_id = null;
         $this->tanggal = null;
+    }
+
+    private function sisaStokBatch(PergerakanStok $stokMasuk)
+    {
+        $keluar = PergerakanStok::where('produk_id', $stokMasuk->produk_id)
+            ->where('produk_supplier_id', $stokMasuk->produk_supplier_id)
+            ->where('tipe', 'keluar')
+            ->where('created_at', '>=', $stokMasuk->created_at)
+            ->sum('qty');
+
+        return $stokMasuk->qty - $keluar;
     }
 
     protected function generateNoStruk()
