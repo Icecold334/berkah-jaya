@@ -236,11 +236,21 @@
                                             Rp {{ number_format($item->harga_jual, 0, ',', '.') }}
                                         </td>
                                         <td class="px-4 py-2 text-right">
-                                            Rp {{ number_format($item->subtotal, 0, ',', '.') }}
+                                            Rp {{ number_format($item->qty * $item->harga_jual, 0, ',', '.') }}
                                         </td>
                                     </tr>
                                 @endforeach
                             </tbody>
+                            {{-- 🔻 TOTAL SUBTOTAL --}}
+                            <tfoot>
+                                <tr class="bg-gray-50 font-semibold">
+                                    <td colspan="3" class="px-4 py-2 text-right">Total</td>
+                                    <td class="px-4 py-2 text-right">
+                                        Rp
+                                        {{ number_format($detail->items->sum(fn($i) => $i->qty * $i->harga_jual), 0, ',', '.') }}
+                                    </td>
+                                </tr>
+                            </tfoot>
                         </table>
                     </div>
                 </div>
