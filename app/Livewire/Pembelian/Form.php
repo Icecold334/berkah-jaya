@@ -116,12 +116,12 @@ class Form extends Component
         DB::beginTransaction();
         try {
             $pembelian = Pembelian::create([
-                'no_faktur'   => Pembelian::generateNoFaktur(),
+                'no_faktur' => Pembelian::generateNoFaktur(),
                 'supplier_id' => $this->supplier_id,
-                'tanggal'     => $this->tanggal,
-                'kena_pajak'  => collect($this->items)->contains(fn($i) => $i['kena_pajak']),
-                'total'       => collect($this->items)->sum(fn($i) => $i['harga_beli'] * $i['qty']),
-                'keterangan'  => $this->keterangan,
+                'tanggal' => $this->tanggal,
+                'kena_pajak' => collect($this->items)->contains(fn($i) => $i['kena_pajak']),
+                'total' => collect($this->items)->sum(fn($i) => $i['harga_beli'] * $i['qty']),
+                'keterangan' => $this->keterangan,
             ]);
 
             // === Simpan item pembelian & stok
@@ -131,10 +131,10 @@ class Form extends Component
                     ['nama' => $item['nama'], 'kode_barang' => fake()->unique()->numerify('BJ#####')]
                 );
 
-                $produkSupplier = ProdukSupplier::updateOrCreate(
-                    ['produk_id' => $produk->id, 'supplier_id' => $this->supplier_id],
-                    ['harga_beli' => $item['harga_beli'], 'tanggal_pembelian_terakhir' => $this->tanggal]
-                );
+                // $produkSupplier = ProdukSupplier::updateOrCreate(
+                //     ['produk_id' => $produk->id, 'supplier_id' => $this->supplier_id],
+                //     ['harga_beli' => $item['harga_beli'], 'tanggal_pembelian_terakhir' => $this->tanggal]
+                // );
 
                 ItemPembelian::create([
                     'pembelian_id' => $pembelian->id,
@@ -146,12 +146,12 @@ class Form extends Component
 
                 $produkSupplier = ProdukSupplier::firstOrCreate(
                     [
-                        'produk_id'   => $produk->id,
+                        'produk_id' => $produk->id,
                         'supplier_id' => $this->supplier_id,
                         'kena_pajak' => $item['kena_pajak'] ?? false,
                     ],
                     [
-                        'harga_beli'                 => 0,
+                        'harga_beli' => 0,
                         'tanggal_pembelian_terakhir' => $this->tanggal,
                     ]
                 );
