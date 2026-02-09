@@ -2,11 +2,13 @@
 
 namespace App\Livewire\Customer;
 
+use App\Models\Produk;
 use Livewire\Component;
 use App\Models\Customer;
 use App\Models\Penjualan;
 use Illuminate\Support\Str;
 use Livewire\WithPagination;
+use App\Models\ItemPenjualan;
 
 class Index extends Component
 {
@@ -31,6 +33,11 @@ class Index extends Component
         'telepon' => 'nullable|string|max:50',
         'alamat' => 'nullable|string|max:500',
     ];
+
+    public $daftarBarang = [];
+    public $selectedProdukId;
+    public $riwayatProduk = [];
+    public $detailInvoice;
 
     public function updatingSearch()
     {
@@ -143,47 +150,105 @@ class Index extends Component
         );
     }
 
+    private function hitungHargaJualProduk($produkId)
+    {
+        $produk = Produk::with('suppliers')->find($produkId);
+        if (!$produk) return 0;
+
+        $supplier = $produk->suppliers()
+            ->orderByDesc('harga_beli')
+            ->orderByDesc('kena_pajak')
+            ->first();
+
+        if (!$supplier) return 0;
+
+        $harga = $supplier->pivot->harga_beli;
+        return $supplier->pivot->kena_pajak ? $harga * 1.02 : $harga;
+    }
+
+
     /** 🔍 Lihat daftar pembelian customer */
     public function showDetail($id)
     {
-        $this->detailCustomer = Customer::with(['penjualans' => function ($q) {
-            $q->orderBy('tanggal', 'desc');
-        }])->findOrFail($id);
+        $this->detailCustomer = Customer::findOrFail($id);
 
-        $this->daftarPembelian = $this->detailCustomer->penjualans->map(function ($p) {
+        // Ambil semua item untuk hitung total_qty per produk
+        $items = ItemPenjualan::query()
+            ->with(['produk', 'penjualan:id,customer_id,status,tanggal'])
+            ->whereHas('penjualan', function ($q) use ($id) {
+                $q->where('customer_id', $id)
+                    ->where('status', 'aktif');
+            })
+            ->get();
+
+        $grouped = $items->groupBy('produk_id');
+
+        // Ambil harga terakhir per produk via DB (join + orderBy tanggal)
+        $latestByProduk = ItemPenjualan::query()
+            ->select('item_penjualans.produk_id', 'item_penjualans.harga_jual', 'penjualans.tanggal')
+            ->join('penjualans', 'penjualans.id', '=', 'item_penjualans.penjualan_id')
+            ->where('penjualans.customer_id', $id)
+            ->where('penjualans.status', 'aktif')
+            ->whereIn('item_penjualans.produk_id', $grouped->keys()->all())
+            ->orderByDesc('penjualans.tanggal')
+            ->orderByDesc('item_penjualans.id') // tie-breaker kalau tanggal sama
+            ->get()
+            ->unique('produk_id')
+            ->keyBy('produk_id');
+
+        $this->daftarBarang = $grouped->map(function ($rows, $produkId) use ($latestByProduk) {
+            $first = $rows->first();
+            $produk = $first?->produk;
+
+            $latest = $latestByProduk->get($produkId);
+
             return [
-                'id' => $p->id,
-                'no_struk' => $p->no_struk,
-                'tanggal' => $p->tanggal?->format('d/m/Y'),
-                'total' => $p->total,
-                'status' => $p->status,
-                'is_lunas' => $p->is_lunas,
-                'sisa_bayar' => $p->sisa_bayar,
+                'produk_id'        => (int) $produkId,
+                'nama_produk'      => $produk?->nama ?? '-',
+                'harga_terbaru'    => (int) ($latest->harga_jual ?? 0),   // ✅ harga terakhir customer ini
+                'total_qty'        => (int) $rows->sum('qty'),
+                'tanggal_terakhir' => optional($latest?->tanggal)->format('d/m/y H:i:s'),
             ];
-        });
+        })->values()->toArray();
 
         $this->dispatch('open-detail-modal');
     }
 
+    public function showDaftarPembelian($customerId)
+    {
+        $this->detailCustomer = Customer::findOrFail($customerId);
+
+        $this->daftarPembelian = Penjualan::where('customer_id', $customerId)
+            ->where('status', 'aktif')
+            ->orderByDesc('tanggal')
+            ->get()
+            ->map(fn($p) => [
+                'id'         => $p->id,
+                'no_struk'   => $p->no_struk,
+                'tanggal'    => optional($p->tanggal)->format('d/m/Y'),
+                'total'      => (int) $p->total,
+                'is_lunas'   => $p->is_lunas,
+                'sisa_bayar' => (int) $p->sisa_bayar,
+            ])
+            ->toArray();
+
+        $this->dispatch('open-daftar-pembelian-modal');
+    }
+
     public function showItemDetail($penjualanId)
     {
-        $penjualan = Penjualan::with('items.produk')->findOrFail($penjualanId);
+        $this->detailInvoice = Penjualan::findOrFail($penjualanId);
 
-        $this->detailPenjualan = [
-            'no_struk' => $penjualan->no_struk,
-            'tanggal' => $penjualan->tanggal?->format('d/m/Y'),
-            'total' => $penjualan->total,
-        ];
-
-        // Ambil daftar item
-        $this->detailItems = $penjualan->items->map(function ($item) {
-            return [
-                'nama_produk' => $item->produk->nama ?? 'Tidak diketahui',
-                'qty' => $item->qty,
-                'harga' => $item->harga_jual,
-                'subtotal' => $item->harga_jual * $item->qty,
-            ];
-        });
+        $this->detailItems = ItemPenjualan::with('produk')
+            ->where('penjualan_id', $penjualanId)
+            ->get()
+            ->map(fn($i) => [
+                'nama_produk' => $i->produk?->nama ?? '-',
+                'qty' => (int) $i->qty,
+                'harga' => (int) $i->harga_jual,
+                'subtotal' => (int) ($i->qty * $i->harga_jual),
+            ])
+            ->toArray();
 
         $this->dispatch('open-item-modal');
     }

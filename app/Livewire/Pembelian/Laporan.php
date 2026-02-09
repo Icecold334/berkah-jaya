@@ -148,7 +148,7 @@ class Laporan extends Component
 
     public function simpanRevisi()
     {
-        $pbLama = Pembelian::with('items')->findOrFail($this->editId);
+        $pbLama = Pembelian::with(['items', 'transaksiKas'])->findOrFail($this->editId);
         RevisiService::revisiTransaksi('pembelian', $pbLama, $this->form);
 
         $this->showRevisiModal = false;
