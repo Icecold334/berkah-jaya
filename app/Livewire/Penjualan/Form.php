@@ -33,18 +33,15 @@ class Form extends Component
 
     public function updatedCustomerInput()
     {
-        // Reset dulu ID setiap kali user ubah input manual
         $this->customer_id = null;
-
         $input = trim($this->customerInput);
 
-        // Kalau input kosong / terlalu pendek → kosongkan list
         if (strlen($input) < 2) {
             $this->customerList = [];
+            $this->refreshHargaCart(); // ✅ customer null => fallback global
             return;
         }
 
-        // 🔹 Ambil daftar suggestion customer (autocomplete)
         $this->customerList = Customer::select('id', 'nama')
             ->where('nama', 'like', '%' . $input . '%')
             ->orderBy('nama')
@@ -52,14 +49,11 @@ class Form extends Component
             ->get()
             ->toArray();
 
-        // 🔹 Cek apakah input cocok persis dengan customer lama (by slug)
-        //    — slug lebih aman untuk pencocokan nama unik & konsisten
         $slug = Str::slug($input);
         $match = Customer::where('slug', $slug)->first();
+        if ($match) $this->customer_id = $match->id;
 
-        if ($match) {
-            $this->customer_id = $match->id; // ✅ auto set kalau slug cocok
-        }
+        $this->refreshHargaCart(); // ✅ update harga sesuai customer
     }
 
     public function pilihCustomer($id)
@@ -69,8 +63,10 @@ class Form extends Component
             $this->customer_id = $customer->id;
             $this->customerInput = $customer->nama;
             $this->customerList = [];
+            $this->refreshHargaCart(); // ✅
         }
     }
+
 
     protected function resolveCustomer()
     {
@@ -150,10 +146,8 @@ class Form extends Component
     public function pilihProduk($id)
     {
         $produk = Produk::find($id);
-
         if (!$produk || $produk->stok < 1) return;
 
-        // cek apakah sudah ada di cart
         $index = collect($this->cart)->search(fn($item) => $item['id'] == $id);
 
         if ($index !== false) {
@@ -161,19 +155,23 @@ class Form extends Component
                 $this->cart[$index]['qty'] += 1;
             }
         } else {
+            $hargaRef = $this->getHargaReferensi($produk->id, $this->customer_id);
+
             $this->cart[] = [
                 'id' => $produk->id,
                 'kode_barang' => $produk->kode_barang,
                 'nama' => $produk->nama,
                 'qty' => 1,
                 'stok' => $produk->stok,
-                'harga' => $produk->harga_jual_default,
+                'harga' => $hargaRef,
+                'harga_manual' => false, // <-- tambahan (biar aman)
             ];
         }
 
         $this->search = '';
         $this->produkList = [];
     }
+
 
     protected function normalisasiHarga($nilai)
     {
@@ -187,11 +185,20 @@ class Form extends Component
 
     public function updatedCart($value, $key)
     {
-        // cek kalau field yang diupdate adalah harga
         if (str_contains($key, '.harga')) {
-            $indexes = explode('.', $key); // contoh: "3.harga"
-            $i = $indexes[0];
+            $i = explode('.', $key)[0];
             $this->cart[$i]['harga'] = $this->normalisasiHarga($this->cart[$i]['harga']);
+            $this->cart[$i]['harga_manual'] = true; // ✅ tambahkan ini
+        }
+
+        // optional: validasi qty biar tidak lewat stok
+        if (str_contains($key, '.qty')) {
+            $i = explode('.', $key)[0];
+            $qty = (int) $this->cart[$i]['qty'];
+            $stok = (int) $this->cart[$i]['stok'];
+            if ($qty < 1) $qty = 1;
+            if ($qty > $stok) $qty = $stok;
+            $this->cart[$i]['qty'] = $qty;
         }
     }
 
@@ -404,6 +411,40 @@ class Form extends Component
 
         return $stok;
     }
+
+    private function getHargaReferensi(int $produkId, ?int $customerId): int
+    {
+        // 1) fallback harga global
+        $produk = Produk::find($produkId);
+        $fallback = (int) ($produk?->harga_jual_default ?? 0);
+
+        // kalau belum pilih customer -> pakai global
+        if (!$customerId) {
+            return $fallback;
+        }
+
+        // 2) ambil harga terakhir customer untuk produk ini (penjualan aktif saja)
+        $lastHarga = ItemPenjualan::query()
+            ->where('produk_id', $produkId)
+            ->whereHas('penjualan', function ($q) use ($customerId) {
+                $q->where('customer_id', $customerId)
+                    ->where('status', 'aktif');
+            })
+            // urutkan yang paling baru:
+            ->latest('id') // atau latest('created_at')
+            ->value('harga_jual');
+
+        return $lastHarga ? (int) $lastHarga : $fallback;
+    }
+
+    private function refreshHargaCart(): void
+    {
+        foreach ($this->cart as $i => $item) {
+            if (($item['harga_manual'] ?? false) === true) continue;
+            $this->cart[$i]['harga'] = $this->getHargaReferensi((int)$item['id'], $this->customer_id);
+        }
+    }
+
 
     public function render()
     {

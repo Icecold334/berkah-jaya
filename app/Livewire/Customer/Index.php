@@ -185,16 +185,18 @@ class Index extends Component
             $first = $rows->first();
             $produk = $first?->produk;
 
-            // ambil item terbaru berdasarkan tanggal penjualan (fallback created_at)
+            // item terbaru: urutkan berdasarkan tanggal penjualan (fallback created_at)
             $latestItem = $rows->sortByDesc(function ($r) {
                 return $r->penjualan?->tanggal ?? $r->created_at;
             })->first();
 
             return [
-                'produk_id'     => $produkId,
+                'produk_id'     => (int) $produkId,
                 'nama_produk'   => $produk?->nama ?? '-',
-                'harga_terbaru' => (int) $this->hitungHargaJualProduk($produkId), // ← FIX
+                'harga_terbaru' => (int) ($latestItem?->harga_jual ?? 0),   // ✅ harga terakhir customer
                 'total_qty'     => (int) $rows->sum('qty'),
+                'tanggal_terakhir' => optional($latestItem?->penjualan?->tanggal)->format('d/m/Y')
+                    ?? optional($latestItem?->created_at)->format('d/m/Y'),
             ];
         })->values()->toArray();
 
