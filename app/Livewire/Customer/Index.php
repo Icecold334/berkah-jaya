@@ -172,7 +172,9 @@ class Index extends Component
     {
         $this->detailCustomer = Customer::findOrFail($id);
 
-        $items = ItemPenjualan::with(['produk', 'penjualan'])
+        // Ambil semua item untuk hitung total_qty per produk
+        $items = ItemPenjualan::query()
+            ->with(['produk', 'penjualan:id,customer_id,status,tanggal'])
             ->whereHas('penjualan', function ($q) use ($id) {
                 $q->where('customer_id', $id)
                     ->where('status', 'aktif');
@@ -181,22 +183,31 @@ class Index extends Component
 
         $grouped = $items->groupBy('produk_id');
 
-        $this->daftarBarang = $grouped->map(function ($rows, $produkId) {
+        // Ambil harga terakhir per produk via DB (join + orderBy tanggal)
+        $latestByProduk = ItemPenjualan::query()
+            ->select('item_penjualans.produk_id', 'item_penjualans.harga_jual', 'penjualans.tanggal')
+            ->join('penjualans', 'penjualans.id', '=', 'item_penjualans.penjualan_id')
+            ->where('penjualans.customer_id', $id)
+            ->where('penjualans.status', 'aktif')
+            ->whereIn('item_penjualans.produk_id', $grouped->keys()->all())
+            ->orderByDesc('penjualans.tanggal')
+            ->orderByDesc('item_penjualans.id') // tie-breaker kalau tanggal sama
+            ->get()
+            ->unique('produk_id')
+            ->keyBy('produk_id');
+
+        $this->daftarBarang = $grouped->map(function ($rows, $produkId) use ($latestByProduk) {
             $first = $rows->first();
             $produk = $first?->produk;
 
-            // item terbaru: urutkan berdasarkan tanggal penjualan (fallback created_at)
-            $latestItem = $rows->sortByDesc(function ($r) {
-                return $r->penjualan?->tanggal ?? $r->created_at;
-            })->first();
+            $latest = $latestByProduk->get($produkId);
 
             return [
-                'produk_id'     => (int) $produkId,
-                'nama_produk'   => $produk?->nama ?? '-',
-                'harga_terbaru' => (int) ($latestItem?->harga_jual ?? 0),   // ✅ harga terakhir customer
-                'total_qty'     => (int) $rows->sum('qty'),
-                'tanggal_terakhir' => optional($latestItem?->penjualan?->tanggal)->format('d/m/Y')
-                    ?? optional($latestItem?->created_at)->format('d/m/Y'),
+                'produk_id'        => (int) $produkId,
+                'nama_produk'      => $produk?->nama ?? '-',
+                'harga_terbaru'    => (int) ($latest->harga_jual ?? 0),   // ✅ harga terakhir customer ini
+                'total_qty'        => (int) $rows->sum('qty'),
+                'tanggal_terakhir' => optional($latest?->tanggal)->format('d/m/y H:i:s'),
             ];
         })->values()->toArray();
 
