@@ -19,32 +19,32 @@
 
                 {{-- Dropdown suggestion --}}
                 @if (!empty($customerList))
-                <ul x-show="open"
-                    class="absolute z-10 w-full bg-white border border-gray-200 rounded-lg shadow-md max-h-56 overflow-y-auto mt-1 divide-y divide-gray-100">
-                    @foreach ($customerList as $cust)
-                    <li wire:click="pilihCustomer({{ $cust['id'] }})"
-                        class="px-4 py-2 hover:bg-primary-50 cursor-pointer text-gray-700">
-                        <i class="fa-regular fa-user mr-2 text-primary-500"></i>{{ $cust['nama'] }}
-                    </li>
-                    @endforeach
-                </ul>
+                    <ul x-show="open"
+                        class="absolute z-10 w-full bg-white border border-gray-200 rounded-lg shadow-md max-h-56 overflow-y-auto mt-1 divide-y divide-gray-100">
+                        @foreach ($customerList as $cust)
+                            <li wire:click="pilihCustomer({{ $cust['id'] }})"
+                                class="px-4 py-2 hover:bg-primary-50 cursor-pointer text-gray-700">
+                                <i class="fa-regular fa-user mr-2 text-primary-500"></i>{{ $cust['nama'] }}
+                            </li>
+                        @endforeach
+                    </ul>
                 @endif
 
                 {{-- Badge status --}}
                 @if ($customerInput)
-                <div class="mt-2">
-                    @if ($customer_id)
-                    <span
-                        class="inline-flex items-center px-2.5 py-1 text-xs font-medium bg-success-100 text-success-800 rounded-full">
-                        <i class="fa-solid fa-circle-check mr-1"></i> Customer Lama
-                    </span>
-                    @else
-                    <span
-                        class="inline-flex items-center px-2.5 py-1 text-xs font-medium bg-warning-100 text-warning-800 rounded-full">
-                        <i class="fa-solid fa-user-plus mr-1"></i> Customer Baru
-                    </span>
-                    @endif
-                </div>
+                    <div class="mt-2">
+                        @if ($customer_id)
+                            <span
+                                class="inline-flex items-center px-2.5 py-1 text-xs font-medium bg-success-100 text-success-800 rounded-full">
+                                <i class="fa-solid fa-circle-check mr-1"></i> Customer Lama
+                            </span>
+                        @else
+                            <span
+                                class="inline-flex items-center px-2.5 py-1 text-xs font-medium bg-warning-100 text-warning-800 rounded-full">
+                                <i class="fa-solid fa-user-plus mr-1"></i> Customer Baru
+                            </span>
+                        @endif
+                    </div>
                 @endif
             </div>
 
@@ -59,16 +59,16 @@
                     @focus="open = true" @blur="setTimeout(() => open = false, 150)">
 
                 @if (!empty($produkList))
-                <ul x-show="open"
-                    class="absolute z-10 w-full bg-white border border-gray-200 rounded-lg shadow-md max-h-60 overflow-y-auto mt-1 divide-y divide-gray-100">
-                    @foreach ($produkList as $produk)
-                    <li wire:click="pilihProduk({{ $produk['id'] }})"
-                        class="px-4 py-2 hover:bg-primary-50 cursor-pointer text-gray-700">
-                        <i class="fa-solid fa-box mr-2 text-primary-500"></i>
-                        {{ $produk['kode_barang'] }} — <span class="font-medium">{{ $produk['nama'] }}</span>
-                    </li>
-                    @endforeach
-                </ul>
+                    <ul x-show="open"
+                        class="absolute z-10 w-full bg-white border border-gray-200 rounded-lg shadow-md max-h-60 overflow-y-auto mt-1 divide-y divide-gray-100">
+                        @foreach ($produkList as $produk)
+                            <li wire:click="pilihProduk({{ $produk['id'] }})"
+                                class="px-4 py-2 hover:bg-primary-50 cursor-pointer text-gray-700">
+                                <i class="fa-solid fa-box mr-2 text-primary-500"></i>
+                                {{ $produk['kode_barang'] }} — <span class="font-medium">{{ $produk['nama'] }}</span>
+                            </li>
+                        @endforeach
+                    </ul>
                 @endif
             </div>
         </div>
@@ -104,14 +104,16 @@
             </thead>
             <tbody>
                 @forelse ($cart as $i => $item)
-                <tr class="odd:bg-gray-50 even:bg-white border-b border-gray-100 hover:bg-primary-50/50">
-                    <td class="px-4 py-3 text-center">{{ $loop->iteration }}</td>
-                    <td class="px-4 py-3">{{ $item['kode_barang'] }}</td>
-                    <td class="px-4 py-3">{{ $item['nama'] }}</td>
-                    <td class="px-4 py-3 text-center">
-                        <input type="number"
-                            class="w-20 text-center rounded-md border-gray-300 focus:border-primary-500 focus:ring focus:ring-primary-200"
-                            min="1" max="{{ $item['stok'] }}" wire:model.live="cart.{{ $i }}.qty" x-data x-on:input="
+                    <tr class="odd:bg-gray-50 even:bg-white border-b border-gray-100 hover:bg-primary-50/50">
+                        <td class="px-4 py-3 text-center">{{ $loop->iteration }}</td>
+                        <td class="px-4 py-3">{{ $item['kode_barang'] }}</td>
+                        <td class="px-4 py-3">{{ $item['nama'] }}</td>
+                        <td class="px-4 py-3 text-center">
+                            <input type="number"
+                                class="w-20 text-center rounded-md border-gray-300 focus:border-primary-500 focus:ring focus:ring-primary-200"
+                                min="1" max="{{ $item['stok'] }}" wire:model.live="cart.{{ $i }}.qty"
+                                x-data
+                                x-on:input="
                                     let val = parseInt($el.value);
                                     let max = {{ $item['stok'] }};
                                     if (isNaN(val)) val = null;
@@ -119,57 +121,75 @@
                                     $el.value = val ?? '';
                                     $wire.set('cart.{{ $i }}.qty', val);
                                 ">
-                        <div class="text-xs text-gray-500 mt-1">Sisa: {{ $item['stok'] }}</div>
-                    </td>
-                    <td class="px-4 py-3 text-right">
-                        <div x-data="{
-                                formatted: '',
-                                raw: '{{ $item['harga'] }}',
-                                formatRupiah(angka) {
-                                    if (!angka) return '';
-                                    return 'Rp ' + angka.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+                            <div class="text-xs text-gray-500 mt-1">Sisa: {{ $item['stok'] }}</div>
+                        </td>
+                        <td class="px-4 py-3 text-right">
+                            <div x-data="{
+                                raw: @entangle('cart.' . $i . '.harga').live,
+                                focused: false,
+                            
+                                formatRupiah(n) {
+                                    if (!n) return '';
+                                    n = String(n).replace(/[^0-9]/g, '');
+                                    if (!n) return '';
+                                    return 'Rp ' + n.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
                                 },
-                                unformat(str) {
-                                    return str.replace(/[^0-9]/g, '');
+                            
+                                onFocus(e) {
+                                    this.focused = true;
+                                    e.target.value = (this.raw ?? '');
                                 },
-                                updateValue(e) {
-                                    this.raw = this.unformat(e.target.value);
-                                    this.formatted = this.formatRupiah(this.raw);
-                                    $wire.set('cart.{{ $i }}.harga', this.raw);
+                            
+                                onInput(e) {
+                                    const v = String(e.target.value).replace(/[^0-9]/g, '');
+                                    this.raw = v;
+                                    e.target.value = v;
+                                },
+                            
+                                onBlur(e) {
+                                    this.focused = false;
+                                    e.target.value = this.formatRupiah(this.raw ?? '');
                                 }
-                            }" x-init="formatted = formatRupiah(raw)">
-                            <input type="text" x-model="formatted" x-on:input="updateValue($event)" inputmode="numeric"
-                                class="w-full bg-gray-50 border border-gray-300 text-right rounded-md p-2 focus:ring-primary-500 focus:border-primary-500">
-                        </div>
-                    </td>
-                    <td class="px-4 py-3 text-right">
-                        Rp {{ number_format($item['qty'] * $item['harga'], 0, ',', '.') }}
-                    </td>
-                    <td class="px-4 py-3 text-center">
-                        <button type="button" wire:click="removeItem({{ $i }})"
-                            class="text-danger-600 hover:text-danger-800">
-                            <i class="fa-solid fa-trash"></i>
-                        </button>
-                    </td>
-                </tr>
+                            }" x-init="const input = $el.querySelector('input');
+                            input.value = formatRupiah(raw ?? '');
+                            
+                            // ✅ kalau raw berubah dari Livewire (misal ganti customer), update tampilan input
+                            $watch('raw', (v) => {
+                                if (!focused) input.value = formatRupiah(v ?? '');
+                            });">
+                                <input type="text" inputmode="numeric" x-on:focus="onFocus($event)"
+                                    x-on:input="onInput($event)" x-on:blur="onBlur($event)"
+                                    class="w-full bg-gray-50 border border-gray-300 text-right rounded-md p-2 focus:ring-primary-500 focus:border-primary-500">
+                            </div>
+                        </td>
+                        <td class="px-4 py-3 text-right">
+                            Rp {{ number_format($item['qty'] * $item['harga'], 0, ',', '.') }}
+                        </td>
+                        <td class="px-4 py-3 text-center">
+                            <button type="button" wire:click="removeItem({{ $i }})"
+                                class="text-danger-600 hover:text-danger-800">
+                                <i class="fa-solid fa-trash"></i>
+                            </button>
+                        </td>
+                    </tr>
                 @empty
-                <tr>
-                    <td colspan="7" class="py-6 text-center text-gray-500">
-                        Belum ada item ditambahkan
-                    </td>
-                </tr>
+                    <tr>
+                        <td colspan="7" class="py-6 text-center text-gray-500">
+                            Belum ada item ditambahkan
+                        </td>
+                    </tr>
                 @endforelse
             </tbody>
         </table>
 
         {{-- Tombol Simpan --}}
         @if (count($cart) > 0 && collect($cart)->every(fn($c) => $c['qty'] > 0))
-        <div class="flex justify-end mt-6">
-            <button type="button" wire:click="konfirmasiSimpan"
-                class="inline-flex items-center bg-success-600 hover:bg-success-700 text-white font-semibold px-6 py-2 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-success-500">
-                <i class="fa-solid fa-floppy-disk mr-2"></i> Simpan Penjualan
-            </button>
-        </div>
+            <div class="flex justify-end mt-6">
+                <button type="button" wire:click="konfirmasiSimpan"
+                    class="inline-flex items-center bg-success-600 hover:bg-success-700 text-white font-semibold px-6 py-2 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-success-500">
+                    <i class="fa-solid fa-floppy-disk mr-2"></i> Simpan Penjualan
+                </button>
+            </div>
         @endif
     </div>
 
